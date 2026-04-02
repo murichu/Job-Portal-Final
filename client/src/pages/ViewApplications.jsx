@@ -48,6 +48,52 @@ const ViewApplications = () => {
     }
   };
 
+  const scheduleInterview = async (applicationId) => {
+    const scheduledAt = window.prompt("Enter interview datetime (YYYY-MM-DDTHH:mm):");
+    if (!scheduledAt) return;
+    try {
+      const { data } = await api.post(`${backendUrl}/api/company/schedule-interview`, {
+        applicationId,
+        scheduledAt: new Date(scheduledAt).toISOString(),
+        notes: "Scheduled from dashboard",
+      });
+      if (data.success) {
+        toast.success("Interview scheduled");
+        fetchApplications();
+      } else {
+        toast.error(data.message || "Failed to schedule interview");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to schedule interview");
+    }
+  };
+
+  const submitFeedback = async (applicationId) => {
+    const interviewerName = window.prompt("Interviewer name:");
+    if (!interviewerName) return;
+    try {
+      const payload = {
+        applicationId,
+        interviewerName,
+        satisfaction: 4,
+        candidateScore: 4,
+        communication: 4,
+        technical: 4,
+        recommendation: "Yes",
+        notes: "Structured feedback submitted from dashboard.",
+      };
+      const { data } = await api.post(`${backendUrl}/api/company/feedback`, payload);
+      if (data.success) {
+        toast.success("Feedback submitted");
+        fetchApplications();
+      } else {
+        toast.error(data.message || "Failed to submit feedback");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to submit feedback");
+    }
+  };
+
   useEffect(() => {
     if (companyToken) fetchApplications();
   }, [companyToken]);
@@ -58,7 +104,10 @@ const ViewApplications = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
+      case "Longlisted":
+        return "bg-blue-100 text-blue-700 border border-blue-200";
       case "Accepted":
+      case "Shortlisted":
         return "bg-green-100 text-green-700 border border-green-200";
       case "Rejected":
         return "bg-red-100 text-red-700 border border-red-200";
@@ -119,6 +168,8 @@ const ViewApplications = () => {
                   <th className="px-5 py-3 text-left">Status</th>
                   <th className="px-5 py-3 text-left">Resume</th>
                   <th className="px-5 py-3 text-left">Action</th>
+                  <th className="px-5 py-3 text-left">Interview</th>
+                  <th className="px-5 py-3 text-left">Timeline</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -174,13 +225,21 @@ const ViewApplications = () => {
                     <td className="px-5 py-4">
                       {updatingStatus === application._id ? (
                         <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                      ) : application.status === "Pending" ? (
+                      ) : application.status === "Shortlisted" ? (
+                        <span className="text-xs text-green-600 font-semibold">Final shortlist</span>
+                      ) : (
                         <div className="flex gap-1.5">
                           <button
-                            onClick={() => updateApplicationStatus(application._id, "Accepted")}
+                            onClick={() => updateApplicationStatus(application._id, "Longlisted")}
+                            className="text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-lg transition-colors"
+                          >
+                            Longlist
+                          </button>
+                          <button
+                            onClick={() => updateApplicationStatus(application._id, "Shortlisted")}
                             className="text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 px-2.5 py-1 rounded-lg transition-colors"
                           >
-                            Accept
+                            Shortlist
                           </button>
                           <button
                             onClick={() => updateApplicationStatus(application._id, "Rejected")}
@@ -189,9 +248,32 @@ const ViewApplications = () => {
                             Reject
                           </button>
                         </div>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
                       )}
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => scheduleInterview(application._id)}
+                          className="text-xs text-indigo-700 border border-indigo-200 bg-indigo-50 px-2 py-1 rounded"
+                        >
+                          Schedule
+                        </button>
+                        <button
+                          onClick={() => submitFeedback(application._id)}
+                          className="text-xs text-purple-700 border border-purple-200 bg-purple-50 px-2 py-1 rounded"
+                        >
+                          Feedback
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 max-w-[260px]">
+                      <div className="text-xs text-gray-500 space-y-1">
+                        {(application.timeline || []).slice(-2).map((event, idx) => (
+                          <p key={idx}>
+                            {event.stage}: {event.note}
+                          </p>
+                        ))}
+                      </div>
                     </td>
                   </tr>
                 ))}

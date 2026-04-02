@@ -6,6 +6,7 @@ import moment from "moment";
 import { useContext } from "react";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
+import { useEffect } from "react";
 
 const Applications = () => {
   const {
@@ -19,6 +20,16 @@ const Applications = () => {
   const [isEdit, setIsEdit] = useState(false);
   const [resume, setResume] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [profileCompleteness, setProfileCompleteness] = useState(null);
+
+  const fetchCompleteness = async () => {
+    try {
+      const { data } = await api.get(`${backendUrl}/api/user/profile-completeness`);
+      if (data.success) setProfileCompleteness(data.completeness);
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
 
   const handleResumeUpdate = async () => {
     if (!resume) {
@@ -72,10 +83,27 @@ const Applications = () => {
     }
   };
 
+  useEffect(() => {
+    fetchCompleteness();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <>
       <Navbar />
       <div className="container px-4 min-h-[65vh] 2xl:px-20 mx-auto my-10">
+        {typeof profileCompleteness === "number" && (
+          <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
+            <p className="text-sm font-medium text-gray-700 mb-2">
+              Profile Completeness: {profileCompleteness}%
+            </p>
+            <div className="w-full bg-gray-100 rounded-full h-2.5">
+              <div
+                className="bg-blue-600 h-2.5 rounded-full"
+                style={{ width: `${profileCompleteness}%` }}
+              />
+            </div>
+          </div>
+        )}
         {/* Resume Section */}
         <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">

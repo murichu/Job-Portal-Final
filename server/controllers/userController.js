@@ -116,7 +116,7 @@ export const registerUser = async (req, res) => {
         email: user.email,
         image: user.image,
       },
-      token: generateToken(user._id),
+      token: generateToken(user._id, "user"),
       message: "Account created successfully",
     });
   } catch (error) {
@@ -201,7 +201,7 @@ export const loginUser = async (req, res) => {
         email: user.email,
         image: user.image,
       },
-      token: generateToken(user._id), // Generate a token for the session
+      token: generateToken(user._id, "user"), // Generate a token for the session
       message: "Login successful",
     });
   } catch (error) {
@@ -276,6 +276,13 @@ export const applyForJob = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "This job is no longer available",
+      });
+    }
+
+    if (new Date(jobData.deadline) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Application deadline has passed for this job",
       });
     }
 
@@ -409,5 +416,28 @@ export const updateUserResume = async (req, res) => {
   } catch (error) {
     console.error("updateUserResume Error:", error.message);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getUserProfileCompleteness = async (req, res) => {
+  try {
+    const user = req.user;
+    const checks = [
+      Boolean(user.name),
+      Boolean(user.email),
+      Boolean(user.image),
+      Boolean(user.resume),
+    ];
+    const completed = checks.filter(Boolean).length;
+    const percent = Math.round((completed / checks.length) * 100);
+    return res.json({
+      success: true,
+      completeness: percent,
+      completed,
+      totalChecks: checks.length,
+    });
+  } catch (error) {
+    console.error("getUserProfileCompleteness error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };

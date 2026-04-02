@@ -132,7 +132,7 @@ export const registerCompany = async (req, res) => {
         companyPhone: company.companyPhone,
         companyLocation: company.companyLocation,
       },
-      token: generateToken(company._id),
+      token: generateToken(company._id, "company"),
       message: "Company created successfully",
     });
   } catch (error) {
@@ -196,7 +196,7 @@ export const loginCompany = async (req, res) => {
         email: company.email,
         image: company.image,
       },
-      token: generateToken(company._id), // Generate a token for the session
+      token: generateToken(company._id, "company"), // Generate a token for the session
     });
   } catch (error) {
     // Log any unexpected server errors
@@ -236,14 +236,22 @@ export const getCompanyData = async (req, res) => {
 // Allows a company to create and post a new job listing with job description, requirements, etc.
 export const postJob = async (req, res) => {
   // Destructure job details from request body
-  const { title, description, location, salary, level, category } = req.body;
+  const { title, description, location, salary, level, category, deadline } = req.body;
 
   // Check if any required field is missing
-  if (!title || !description || !location || !salary || !level || !category) {
+  if (!title || !description || !location || !salary || !level || !category || !deadline) {
     return res.status(400).json({
       success: false,
       message:
-        "All fields (title, description, location, salary, level, category) are required.",
+        "All fields (title, description, location, salary, level, category, deadline) are required.",
+    });
+  }
+
+  const parsedDeadline = new Date(deadline);
+  if (Number.isNaN(parsedDeadline.getTime()) || parsedDeadline <= new Date()) {
+    return res.status(400).json({
+      success: false,
+      message: "Deadline must be a valid future date.",
     });
   }
 
@@ -261,6 +269,7 @@ export const postJob = async (req, res) => {
       category,
       companyId,
       date: Date.now(),
+      deadline: parsedDeadline,
     });
 
     // Save the job to the database
@@ -339,9 +348,15 @@ export const getCompanyPostedJobs = async (req, res) => {
         const applicants = await JobApplication.countDocuments({
           jobId: job._id,
         });
+        const shortlistedCount = await JobApplication.countDocuments({
+          jobId: job._id,
+          status: "Shortlisted",
+        });
+        const isExpired = new Date(job.deadline) < new Date();
+        const canRepost = isExpired && shortlistedCount === 0;
 
         // Spread job directly since .lean() returns plain objects
-        return { ...job, applicants };
+        return { ...job, applicants, shortlistedCount, isExpired, canRepost };
       })
     );
 
@@ -372,10 +387,10 @@ export const ChangeJobApplicationStatus = async (req, res) => {
       });
     }
 
-    if (!['Pending', 'Accepted', 'Rejected'].includes(status)) {
+    if (!['Pending', 'Longlisted', 'Shortlisted', 'Rejected'].includes(status)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid status. Must be Pending, Accepted, or Rejected.',
+        message: 'Invalid status. Must be Pending, Longlisted, Shortlisted, or Rejected.',
       });
     }
 
@@ -388,11 +403,17 @@ export const ChangeJobApplicationStatus = async (req, res) => {
     }
 
     // Find and update the application
-    const application = await JobApplication.findOneAndUpdate(
-      { _id: applicationId, companyId },
-      { status },
-      { new: true }
-    ).populate('userId', 'name email')
+    const statusStageMap = {
+      Pending: "Applied",
+      Longlisted: "Longlisted",
+      Shortlisted: "Shortlisted",
+      Rejected: "Rejected",
+    };
+
+    const application = await JobApplication.findOne({
+      _id: applicationId,
+      companyId,
+    }).populate('userId', 'name email')
      .populate('jobId', 'title');
 
     if (!application) {
@@ -401,6 +422,18 @@ export const ChangeJobApplicationStatus = async (req, res) => {
         message: 'Application not found or you are not authorized to update it.',
       });
     }
+
+    application.status = status;
+    application.stage = statusStageMap[status] || application.stage;
+    application.timeline = application.timeline || [];
+    application.timeline.push({
+      stage: application.stage,
+      status,
+      note: `Status updated to ${status}`,
+      changedBy: req.company?.name || "Company",
+      changedAt: new Date(),
+    });
+    await application.save();
 
     res.json({
       success: true,
@@ -414,6 +447,286 @@ export const ChangeJobApplicationStatus = async (req, res) => {
       message: 'Server error.',
     });
   }
+};
+
+// Repost expired jobs if there are no shortlisted applications
+export const repostJob = async (req, res) => {
+  try {
+    const { id, deadline } = req.body;
+    const companyId = req.company._id;
+
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Valid job ID is required." });
+    }
+
+    const originalJob = await Job.findById(id);
+    if (!originalJob) {
+      return res.status(404).json({ success: false, message: "Job not found." });
+    }
+
+    if (originalJob.companyId.toString() !== companyId.toString()) {
+      return res.status(403).json({ success: false, message: "Unauthorized action." });
+    }
+
+    if (new Date(originalJob.deadline) > new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "You can only repost after the current posting deadline.",
+      });
+    }
+
+    const shortlistedCount = await JobApplication.countDocuments({
+      jobId: originalJob._id,
+      status: "Shortlisted",
+    });
+
+    if (shortlistedCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot repost because this job has shortlisted candidates.",
+      });
+    }
+
+    const newDeadline = deadline ? new Date(deadline) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    if (Number.isNaN(newDeadline.getTime()) || newDeadline <= new Date()) {
+      return res.status(400).json({ success: false, message: "Repost deadline must be a future date." });
+    }
+
+    const repostedJob = await Job.create({
+      title: originalJob.title,
+      description: originalJob.description,
+      location: originalJob.location,
+      category: originalJob.category,
+      level: originalJob.level,
+      salary: originalJob.salary,
+      companyId: originalJob.companyId,
+      visible: true,
+      date: new Date(),
+      deadline: newDeadline,
+      repostedFrom: originalJob._id,
+    });
+
+    return res.json({ success: true, message: "Job reposted successfully.", job: repostedJob });
+  } catch (error) {
+    console.error("repostJob error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const getCompanyStages = async (req, res) => {
+  return res.json({
+    success: true,
+    stages: req.company.interviewStages || [],
+  });
+};
+
+export const updateCompanyStages = async (req, res) => {
+  try {
+    const { stages } = req.body;
+    const updated = await Company.findByIdAndUpdate(
+      req.company._id,
+      { interviewStages: stages },
+      { new: true }
+    ).lean();
+    return res.json({ success: true, stages: updated.interviewStages });
+  } catch (error) {
+    console.error("updateCompanyStages error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const scheduleInterview = async (req, res) => {
+  try {
+    const { applicationId, scheduledAt, notes = "" } = req.body;
+    const application = await JobApplication.findOne({
+      _id: applicationId,
+      companyId: req.company._id,
+    });
+    if (!application) {
+      return res.status(404).json({ success: false, message: "Application not found." });
+    }
+
+    const meetToken = Math.random().toString(36).slice(2, 10);
+    const meetLink = `https://meet.google.com/${meetToken}`;
+    application.interview = {
+      scheduledAt: new Date(scheduledAt),
+      meetLink,
+      reminderSent: false,
+      notes,
+    };
+    application.stage = "Interview";
+    application.timeline = application.timeline || [];
+    application.timeline.push({
+      stage: "Interview",
+      status: application.status,
+      note: `Interview scheduled for ${new Date(scheduledAt).toLocaleString()}`,
+      changedBy: req.company?.name || "Company",
+      changedAt: new Date(),
+    });
+    await application.save();
+
+    return res.json({
+      success: true,
+      message: "Interview scheduled successfully.",
+      interview: application.interview,
+    });
+  } catch (error) {
+    console.error("scheduleInterview error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const submitInterviewFeedback = async (req, res) => {
+  try {
+    const { applicationId, ...feedback } = req.body;
+    const application = await JobApplication.findOne({
+      _id: applicationId,
+      companyId: req.company._id,
+    });
+    if (!application) {
+      return res.status(404).json({ success: false, message: "Application not found." });
+    }
+
+    application.feedback = application.feedback || [];
+    application.feedback.push(feedback);
+    application.timeline = application.timeline || [];
+    application.timeline.push({
+      stage: application.stage || "Interview",
+      status: application.status,
+      note: "Interview feedback submitted",
+      changedBy: feedback.interviewerName || "Interviewer",
+      changedAt: new Date(),
+    });
+    await application.save();
+
+    return res.json({ success: true, message: "Feedback recorded successfully." });
+  } catch (error) {
+    console.error("submitInterviewFeedback error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const getInterviewAnalytics = async (req, res) => {
+  try {
+    const applications = await JobApplication.find({ companyId: req.company._id }).lean();
+    const feedbackRows = applications.flatMap((a) => a.feedback || []);
+    const avg = (key) =>
+      feedbackRows.length
+        ? (
+            feedbackRows.reduce((sum, row) => sum + (Number(row[key]) || 0), 0) /
+            feedbackRows.length
+          ).toFixed(2)
+        : "0.00";
+
+    return res.json({
+      success: true,
+      analytics: {
+        feedbackCount: feedbackRows.length,
+        interviewerSatisfaction: avg("satisfaction"),
+        candidatePerformance: avg("candidateScore"),
+        communication: avg("communication"),
+        technical: avg("technical"),
+      },
+    });
+  } catch (error) {
+    console.error("getInterviewAnalytics error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const sendInterviewReminders = async (req, res) => {
+  try {
+    const now = new Date();
+    const in24Hours = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const applications = await JobApplication.find({
+      companyId: req.company._id,
+      "interview.scheduledAt": { $gte: now, $lte: in24Hours },
+      "interview.reminderSent": false,
+    });
+
+    for (const application of applications) {
+      application.interview.reminderSent = true;
+      application.timeline = application.timeline || [];
+      application.timeline.push({
+        stage: "Interview",
+        status: application.status,
+        note: "Automated interview reminder sent",
+        changedBy: "System",
+        changedAt: new Date(),
+      });
+      await application.save();
+    }
+
+    return res.json({
+      success: true,
+      message: `${applications.length} interview reminder(s) processed.`,
+      count: applications.length,
+    });
+  } catch (error) {
+    console.error("sendInterviewReminders error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const getCompanyNotifications = async (req, res) => {
+  try {
+    const applications = await JobApplication.find({ companyId: req.company._id })
+      .sort({ updatedAt: -1 })
+      .limit(50)
+      .lean();
+
+    const notifications = applications
+      .flatMap((app) =>
+        (app.timeline || []).map((event) => ({
+          applicationId: app._id,
+          stage: event.stage,
+          status: event.status,
+          note: event.note,
+          changedAt: event.changedAt,
+          changedBy: event.changedBy,
+        }))
+      )
+      .sort((a, b) => new Date(b.changedAt) - new Date(a.changedAt))
+      .slice(0, 20);
+
+    return res.json({ success: true, notifications });
+  } catch (error) {
+    console.error("getCompanyNotifications error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const updateCompanyRichProfile = async (req, res) => {
+  try {
+    const { website = "", about = "", culture = "", benefits = [], teamHighlights = [] } = req.body;
+    const updated = await Company.findByIdAndUpdate(
+      req.company._id,
+      { website, about, culture, benefits, teamHighlights },
+      { new: true }
+    ).lean();
+    return res.json({ success: true, company: updated });
+  } catch (error) {
+    console.error("updateCompanyRichProfile error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const getCompanyProfileCompleteness = async (req, res) => {
+  const company = req.company;
+  const checks = [
+    Boolean(company.image),
+    Boolean(company.companyLocation),
+    Boolean(company.companyPhone),
+    Boolean(company.recruiterName),
+    Boolean(company.website),
+    Boolean(company.about),
+    Boolean(company.culture),
+    Array.isArray(company.benefits) && company.benefits.length > 0,
+    Array.isArray(company.teamHighlights) && company.teamHighlights.length > 0,
+  ];
+  const completed = checks.filter(Boolean).length;
+  const percent = Math.round((completed / checks.length) * 100);
+  return res.json({ success: true, completeness: percent, totalChecks: checks.length, completed });
 };
 
 // Change job visibility
@@ -472,5 +785,155 @@ export const ChangeJobVisibility = async (req, res) => {
       success: false,
       message: "Server error.",
     });
+  }
+};
+
+const buildCompanyReport = async (companyId) => {
+  const [jobs, applications] = await Promise.all([
+    Job.find({ companyId }).sort({ createdAt: -1 }).lean(),
+    JobApplication.find({ companyId })
+      .populate("jobId", "title")
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 })
+      .lean(),
+  ]);
+
+  const statusCounts = applications.reduce(
+    (acc, app) => {
+      acc[app.status] = (acc[app.status] || 0) + 1;
+      return acc;
+    },
+    { Pending: 0, Longlisted: 0, Shortlisted: 0, Rejected: 0 }
+  );
+
+  return {
+    jobs,
+    applications,
+    statusCounts,
+    totals: {
+      jobs: jobs.length,
+      applications: applications.length,
+      longlisted: statusCounts.Longlisted,
+      shortlisted: statusCounts.Shortlisted,
+      pending: statusCounts.Pending,
+      rejected: statusCounts.Rejected,
+    },
+  };
+};
+
+export const getCompanyReportsSummary = async (req, res) => {
+  try {
+    const company = req.company;
+    const report = await buildCompanyReport(company._id);
+    return res.json({
+      success: true,
+      company,
+      ...report,
+    });
+  } catch (error) {
+    console.error("getCompanyReportsSummary error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const downloadCompanyReportExcel = async (req, res) => {
+  try {
+    const company = req.company;
+    const report = await buildCompanyReport(company._id);
+    const csvLines = [];
+
+    csvLines.push("Office Details");
+    csvLines.push("Company Name,Office Location,Office Phone,Recruiter,Recruiter Position,Company Email,Logo URL");
+    csvLines.push(
+      `"${company.name}","${company.companyLocation}","${company.companyPhone}","${company.recruiterName}","${company.recruiterPosition}","${company.email}","${company.image || ""}"`
+    );
+    csvLines.push("");
+    csvLines.push("Summary");
+    csvLines.push("Total Jobs,Total Applications,Longlisted,Shortlisted,Pending,Rejected");
+    csvLines.push(
+      `${report.totals.jobs},${report.totals.applications},${report.totals.longlisted},${report.totals.shortlisted},${report.totals.pending},${report.totals.rejected}`
+    );
+    csvLines.push("");
+    csvLines.push("Jobs");
+    csvLines.push("Title,Category,Level,Location,Salary,Visible,Posted Date");
+    report.jobs.forEach((job) => {
+      csvLines.push(
+        `"${job.title}","${job.category}","${job.level}","${job.location}",${job.salary},${
+          job.visible ? "Yes" : "No"
+        },"${new Date(job.date).toLocaleDateString()}"`
+      );
+    });
+    csvLines.push("");
+    csvLines.push("Applications");
+    csvLines.push("Candidate Name,Candidate Email,Job Title,Status,Applied Date");
+    report.applications.forEach((app) => {
+      csvLines.push(
+        `"${app.userId?.name || "N/A"}","${app.userId?.email || "N/A"}","${
+          app.jobId?.title || "N/A"
+        }","${app.status}","${new Date(app.date).toLocaleDateString()}"`
+      );
+    });
+
+    const buffer = Buffer.from(csvLines.join("\n"), "utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=${company.name.replace(/\s+/g, "_")}_report.csv`
+    );
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    return res.send(buffer);
+  } catch (error) {
+    console.error("downloadCompanyReportExcel error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const downloadCompanyReportPDF = async (req, res) => {
+  try {
+    const company = req.company;
+    const report = await buildCompanyReport(company._id);
+    const html = `
+      <!doctype html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>${company.name} Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
+          .header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+          .logo { width: 72px; height: 72px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; }
+          h1,h2 { margin: 0 0 10px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+          th { background: #f6f7fb; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img class="logo" src="${company.image || ""}" alt="Company Logo" />
+          <div>
+            <h1>${company.name} Report</h1>
+            <div>Office: ${company.companyLocation}</div>
+            <div>Phone: ${company.companyPhone}</div>
+            <div>Recruiter: ${company.recruiterName} (${company.recruiterPosition})</div>
+            <div>Email: ${company.email}</div>
+          </div>
+        </div>
+        <h2>Summary</h2>
+        <table>
+          <tr><th>Total Jobs</th><th>Total Applications</th><th>Longlisted</th><th>Shortlisted</th><th>Pending</th><th>Rejected</th></tr>
+          <tr><td>${report.totals.jobs}</td><td>${report.totals.applications}</td><td>${report.totals.longlisted}</td><td>${report.totals.shortlisted}</td><td>${report.totals.pending}</td><td>${report.totals.rejected}</td></tr>
+        </table>
+      </body>
+      </html>
+    `;
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename=${company.name.replace(/\s+/g, "_")}_report.html`
+    );
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    return res.send(html);
+  } catch (error) {
+    console.error("downloadCompanyReportPDF error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
   }
 };
