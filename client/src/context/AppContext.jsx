@@ -7,13 +7,28 @@ const api = axios.create({
   timeout: 15000,
 });
 
+const resolveAuthToken = (url) => {
+  const userToken = localStorage.getItem("Token");
+  const companyToken = localStorage.getItem("companyToken");
+
+  if (url?.includes("/api/company/")) return companyToken;
+  if (url?.includes("/api/user/")) return userToken;
+
+  return userToken || companyToken;
+};
+
 // Attach auth token on every request
 api.interceptors.request.use(
   (config) => {
-    const userToken = localStorage.getItem("Token");
-    const companyToken = localStorage.getItem("companyToken");
-    const token = userToken || companyToken;
-    if (token) {
+    const alreadyHasAuthHeader =
+      Boolean(config.headers?.Authorization) || Boolean(config.headers?.authorization);
+
+    if (alreadyHasAuthHeader) {
+      return config;
+    }
+
+    const token = resolveAuthToken(config.url);
+    if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;

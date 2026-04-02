@@ -14,7 +14,11 @@ import {
   Type,
 } from "lucide-react";
 
-const LEVELS = ["Beginner Level", "Intermediate Level", "Senior Level"];
+const LEVELS = [
+  { label: "Beginner Level", value: "Beginner level" },
+  { label: "Intermediate Level", value: "Intermediate level" },
+  { label: "Senior Level", value: "Senior level" },
+];
 
 const AddJob = () => {
   const { backendUrl, companyToken, api } = useContext(AppContext);
@@ -242,8 +246,8 @@ const AddJob = () => {
                   Select level
                 </option>
                 {LEVELS.map((l, i) => (
-                  <option key={i} value={l}>
-                    {l}
+                  <option key={i} value={l.value}>
+                    {l.label}
                   </option>
                 ))}
               </select>
