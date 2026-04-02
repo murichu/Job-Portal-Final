@@ -132,7 +132,7 @@ export const registerCompany = async (req, res) => {
         companyPhone: company.companyPhone,
         companyLocation: company.companyLocation,
       },
-      token: generateToken(company._id),
+      token: generateToken(company._id, "company"),
       message: "Company created successfully",
     });
   } catch (error) {
@@ -196,7 +196,7 @@ export const loginCompany = async (req, res) => {
         email: company.email,
         image: company.image,
       },
-      token: generateToken(company._id), // Generate a token for the session
+      token: generateToken(company._id, "company"), // Generate a token for the session
     });
   } catch (error) {
     // Log any unexpected server errors

@@ -116,7 +116,7 @@ export const registerUser = async (req, res) => {
         email: user.email,
         image: user.image,
       },
-      token: generateToken(user._id),
+      token: generateToken(user._id, "user"),
       message: "Account created successfully",
     });
   } catch (error) {
@@ -201,7 +201,7 @@ export const loginUser = async (req, res) => {
         email: user.email,
         image: user.image,
       },
-      token: generateToken(user._id), // Generate a token for the session
+      token: generateToken(user._id, "user"), // Generate a token for the session
       message: "Login successful",
     });
   } catch (error) {
