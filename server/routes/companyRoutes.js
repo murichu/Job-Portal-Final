@@ -19,8 +19,8 @@ const companyRouter = express.Router();
 // Register a Company
 companyRouter.post(
   "/register",
-  validateRequest(companyRegistrationSchema),
   upload.single("image"),
+  validateRequest(companyRegistrationSchema),
   handleUploadError,
   registerCompany
 );
