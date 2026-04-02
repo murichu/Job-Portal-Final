@@ -136,7 +136,6 @@ const main = async () => {
         level,
         salary: 50000 + Math.floor(Math.random() * 90000),
         date: new Date(),
-        deadline: new Date(Date.now() + (15 + Math.floor(Math.random() * 45)) * 24 * 60 * 60 * 1000),
         visible: true,
         companyId: company._id,
       });
