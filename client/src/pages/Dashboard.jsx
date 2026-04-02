@@ -7,6 +7,7 @@ const menuItems = [
   { label: "Add Job",      icon: assets.add_icon,         path: "/dashboard/add-job" },
   { label: "Manage Jobs",  icon: assets.home_icon,        path: "/dashboard/manage-jobs" },
   { label: "Applications", icon: assets.person_tick_icon, path: "/dashboard/view-applications" },
+  { label: "Reports",      icon: assets.resume_download_icon, path: "/dashboard/reports" },
 ];
 
 const Dashboard = () => {

@@ -28,6 +28,7 @@ const AddJob = () => {
   const [category, setCategory] = useState("");
   const [level, setLevel] = useState("");
   const [salary, setSalary] = useState("");
+  const [deadline, setDeadline] = useState("");
   const [loading, setLoading] = useState(false);
   const [charCount, setCharCount] = useState(0);
 
@@ -61,6 +62,7 @@ const AddJob = () => {
     setLocation("");
     setCategory("");
     setLevel("");
+    setDeadline("");
     setCharCount(0);
     if (quillRef.current) quillRef.current.root.innerHTML = "";
   };
@@ -74,6 +76,7 @@ const AddJob = () => {
     if (!level) return toast.error("Please select a level");
     if (!salary || Number(salary) <= 0)
       return toast.error("Please enter a valid salary");
+    if (!deadline) return toast.error("Please select an application deadline");
 
     const description = quillRef.current?.root.innerHTML.trim();
     if (!description || description === "<p><br></p>") {
@@ -91,6 +94,7 @@ const AddJob = () => {
           salary: Number(salary),
           category,
           level,
+          deadline: new Date(deadline).toISOString(),
         },
         {
           headers: {
@@ -115,7 +119,7 @@ const AddJob = () => {
   };
 
   const isFormDirty =
-    title || location || category || level || salary || charCount > 0;
+    title || location || category || level || salary || deadline || charCount > 0;
 
   return (
     <div className="max-w-3xl">
@@ -148,6 +152,21 @@ const AddJob = () => {
           <p className="text-xs text-gray-400 mt-1.5 text-right">
             {title.length}/100
           </p>
+        </div>
+
+        {/* Deadline */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Application Deadline <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+            min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0]}
+            required
+            className="w-full sm:w-56 px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
         </div>
 
         {/* Job Description */}

@@ -15,6 +15,7 @@ import Dashboard        from "./pages/Dashboard";
 import AddJob           from "./pages/AddJob";
 import ManageJobs       from "./pages/ManageJobs";
 import ViewApplications from "./pages/ViewApplications";
+import Reports          from "./pages/Reports";
 import NotFound         from "./pages/NotFound";
 
 import RecruiterLogin from "./components/RecruiterLogin";
@@ -75,6 +76,7 @@ const App = () => {
             <Route path="add-job"          element={<AddJob />} />
             <Route path="manage-jobs"      element={<ManageJobs />} />
             <Route path="view-applications" element={<ViewApplications />} />
+            <Route path="reports"          element={<Reports />} />
           </Route>
 
           {/* 404 */}

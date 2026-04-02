@@ -57,8 +57,23 @@ api.interceptors.response.use(
 
 export const AppContext = createContext();
 
+const resolveBackendUrl = () => {
+  const envUrl = import.meta.env.VITE_BACKEND_URL?.trim();
+
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const csbMatch = host.match(/^(.*)-\d+\.csb\.app$/);
+
+    if (csbMatch?.[1]) {
+      return `https://${csbMatch[1]}-5000.csb.app`;
+    }
+  }
+
+  return envUrl || "http://localhost:4000";
+};
+
 export const AppContextProvider = ({ children }) => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = resolveBackendUrl();
 
   // ── Search ──────────────────────────────────────────────────────────────
   const [searchFilter, setSearchFilter] = useState({ title: "", location: "" });

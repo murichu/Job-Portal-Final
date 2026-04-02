@@ -6,6 +6,7 @@ import {
   loginUser,
   registerUser,
   updateUserResume,
+  getUserProfileCompleteness,
   authRateLimit,
 } from "../controllers/userController.js";
 import upload, { handleUploadError } from "../config/multer.js";
@@ -42,6 +43,7 @@ userRouter.post("/apply", protectedRouteRateLimit, protectUser, validateRequest(
 // @desc    Get all jobs the user has applied to
 // @access  Private
 userRouter.get("/applications", protectedRouteRateLimit, protectUser, getUserJobApplications);
+userRouter.get("/profile-completeness", protectedRouteRateLimit, protectUser, getUserProfileCompleteness);
 
 // @route   POST /update-resume
 // @desc    Update user's resume (uploaded via multipart/form-data)

@@ -34,7 +34,8 @@ export const jobPostingSchema = Joi.object({
   location: Joi.string().min(2).max(50).required(),
   category: Joi.string().valid('Programming', 'Data Science', 'Designing', 'Networking', 'Management', 'Marketing', 'Cybersecurity').required(),
   level: Joi.string().valid('Beginner level', 'Intermediate level', 'Senior level').required(),
-  salary: Joi.number().min(0).max(1000000).required()
+  salary: Joi.number().min(0).max(1000000).required(),
+  deadline: Joi.date().iso().greater('now').required()
 });
 
 // Job application validation schema
@@ -45,5 +46,26 @@ export const jobApplicationSchema = Joi.object({
 // Application status update validation schema
 export const applicationStatusSchema = Joi.object({
   applicationId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
-  status: Joi.string().valid('Pending', 'Accepted', 'Rejected').required()
+  status: Joi.string().valid('Pending', 'Longlisted', 'Shortlisted', 'Rejected').required()
+});
+
+export const companyStagesSchema = Joi.object({
+  stages: Joi.array().items(Joi.string().min(2).max(40)).min(3).required()
+});
+
+export const interviewScheduleSchema = Joi.object({
+  applicationId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
+  scheduledAt: Joi.date().iso().greater('now').required(),
+  notes: Joi.string().allow('').max(300).optional()
+});
+
+export const feedbackSchema = Joi.object({
+  applicationId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
+  interviewerName: Joi.string().min(2).max(100).required(),
+  satisfaction: Joi.number().min(1).max(5).required(),
+  candidateScore: Joi.number().min(1).max(5).required(),
+  communication: Joi.number().min(1).max(5).required(),
+  technical: Joi.number().min(1).max(5).required(),
+  recommendation: Joi.string().valid('Strong No', 'No', 'Maybe', 'Yes', 'Strong Yes').required(),
+  notes: Joi.string().allow('').max(500).optional()
 });
