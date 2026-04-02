@@ -3,91 +3,99 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import * as Sentry from "@sentry/node";
-import connectDB from "./config/mongoDB.js";
 import cookieParser from "cookie-parser";
-//import { clerkWebhooks } from "./controllers/webhooks.js";
-import companyRouter from "./routes/companyRoutes.js";
-import connectCloudinary from "./config/Cloudinary.js";
-import jobRouter from "./routes/jobRoutes.js";
-import userRouter from "./routes/userRouter.js";
 import rateLimit from "express-rate-limit";
 
-// Load environment variables
+import connectDB from "./config/mongoDB.js";
+import connectCloudinary from "./config/Cloudinary.js";
+
+import companyRouter from "./routes/companyRoutes.js";
+import jobRouter from "./routes/jobRoutes.js";
+import userRouter from "./routes/userRouter.js";
+
+// Load env
 dotenv.config();
 
-// Initialize express
+// Init app
 const app = express();
 
-// ✅ Trust proxy to fix X-Forwarded-For error with express-rate-limit
-app.set("trust proxy", false);
+// ✅ Trust proxy (important for Codesandbox / deployment)
+app.set("trust proxy", 1);
 
-// ✅ Apply rate limiter before routes
+// ================= CORS (FIXED) =================
+app.use(
+  cors({
+    origin: true, // allow all (fixes Codesandbox dynamic URLs)
+    credentials: true,
+  })
+);
+
+// ✅ Handle preflight requests
+app.options("*", cors());
+
+// ================= MIDDLEWARE =================
+app.use(express.json());
+app.use(cookieParser());
+
+// ================= RATE LIMIT (SAFE) =================
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Increased limit for general API usage
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many requests from this IP, please try again later."
-  }
+    message: "Too many requests, try again later.",
+  },
 });
 
-app.use(limiter);
+// Skip limiter for OPTIONS (preflight)
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") return next();
+  limiter(req, res, next);
+});
 
-// Connect to database and Cloudinary
+// ================= CONNECT SERVICES =================
 await connectDB();
 await connectCloudinary();
 
-// General middleware
-app.use(
-  cors({
-    origin: "https://jfj697-5173.csb.app", // Adjust to your frontend URL
-    credentials: true,
-  })
-);
-app.use(express.json());
-app.use(cookieParser());
-
-// Routes
+// ================= ROUTES =================
 app.use("/api/user", userRouter);
 app.use("/api/company", companyRouter);
 app.use("/api/jobs", jobRouter);
 
-// Sentry test route
-app.get("/debug-sentry", (req, res) => {
-  throw new Error("My first Sentry error!");
-});
-
-// Health check
+// ================= TEST ROUTES =================
 app.get("/", (req, res) => {
-  res.json({ 
-    success: true, 
-    message: "Job Portal API is running!",
-    version: "1.0.0",
-    timestamp: new Date().toISOString()
+  res.json({
+    success: true,
+    message: "Job Portal API is running 🚀",
+    timestamp: new Date().toISOString(),
   });
 });
 
-// Health check endpoint
 app.get("/health", (req, res) => {
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     status: "healthy",
-    timestamp: new Date().toISOString()
   });
 });
 
-// 404 fallback
-app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
+// Sentry test
+app.get("/debug-sentry", (req, res) => {
+  throw new Error("Sentry test error");
 });
 
-// Sentry error handler (last)
+// ================= 404 HANDLER =================
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: "Route not found" });
+});
+
+// ================= SENTRY ERROR HANDLER =================
 Sentry.setupExpressErrorHandler(app);
 
-// Start server
+// ================= START SERVER =================
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
