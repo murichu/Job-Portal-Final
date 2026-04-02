@@ -5,7 +5,14 @@ import { JobCategories, JobLocations } from "../assets/assets";
 
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
-import { Loader2, Briefcase, MapPin, BarChart2, DollarSign, Type } from "lucide-react";
+import {
+  Loader2,
+  Briefcase,
+  MapPin,
+  BarChart2,
+  DollarSign,
+  Type,
+} from "lucide-react";
 
 const LEVELS = ["Beginner Level", "Intermediate Level", "Senior Level"];
 
@@ -27,7 +34,8 @@ const AddJob = () => {
     if (!quillRef.current && editorRef.current) {
       quillRef.current = new Quill(editorRef.current, {
         theme: "snow",
-        placeholder: "Describe the role, responsibilities, requirements, and what makes this opportunity exciting...",
+        placeholder:
+          "Describe the role, responsibilities, requirements, and what makes this opportunity exciting...",
         modules: {
           toolbar: [
             [{ header: [2, 3, false] }],
@@ -60,7 +68,8 @@ const AddJob = () => {
     if (!location) return toast.error("Please select a location");
     if (!category) return toast.error("Please select a category");
     if (!level) return toast.error("Please select a level");
-    if (!salary || Number(salary) <= 0) return toast.error("Please enter a valid salary");
+    if (!salary || Number(salary) <= 0)
+      return toast.error("Please enter a valid salary");
 
     const description = quillRef.current?.root.innerHTML.trim();
     if (!description || description === "<p><br></p>") {
@@ -71,8 +80,19 @@ const AddJob = () => {
       setLoading(true);
       const { data } = await api.post(
         `${backendUrl}/api/company/post-job`,
-        { title, description, location, salary: Number(salary), category, level },
-
+        {
+          title,
+          description,
+          location,
+          salary: Number(salary),
+          category,
+          level,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${companyToken}`,
+          },
+        }
       );
 
       if (data.success) {
@@ -82,13 +102,16 @@ const AddJob = () => {
         toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message || "Failed to post job");
+      toast.error(
+        error.response?.data?.message || error.message || "Failed to post job"
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const isFormDirty = title || location || category || level || salary || charCount > 0;
+  const isFormDirty =
+    title || location || category || level || salary || charCount > 0;
 
   return (
     <div className="max-w-3xl">
@@ -118,7 +141,9 @@ const AddJob = () => {
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
             />
           </div>
-          <p className="text-xs text-gray-400 mt-1.5 text-right">{title.length}/100</p>
+          <p className="text-xs text-gray-400 mt-1.5 text-right">
+            {title.length}/100
+          </p>
         </div>
 
         {/* Job Description */}
@@ -131,7 +156,11 @@ const AddJob = () => {
             <p className="text-xs text-gray-400">
               Use headings and lists to make your description scannable.
             </p>
-            <p className={`text-xs font-medium ${charCount < 100 ? "text-amber-500" : "text-green-600"}`}>
+            <p
+              className={`text-xs font-medium ${
+                charCount < 100 ? "text-amber-500" : "text-green-600"
+              }`}
+            >
               {charCount < 100
                 ? `${100 - charCount} more chars recommended`
                 : `✓ ${charCount} characters`}
@@ -141,13 +170,16 @@ const AddJob = () => {
 
         {/* Category, Location, Level */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Job Details</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">
+            Job Details
+          </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Category */}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1.5">
                 <span className="flex items-center gap-1.5">
-                  <Briefcase className="w-3.5 h-3.5" /> Category <span className="text-red-500">*</span>
+                  <Briefcase className="w-3.5 h-3.5" /> Category{" "}
+                  <span className="text-red-500">*</span>
                 </span>
               </label>
               <select
@@ -156,9 +188,13 @@ const AddJob = () => {
                 required
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-shadow appearance-none"
               >
-                <option value="" disabled>Select category</option>
+                <option value="" disabled>
+                  Select category
+                </option>
                 {JobCategories.map((cat, i) => (
-                  <option key={i} value={cat}>{cat}</option>
+                  <option key={i} value={cat}>
+                    {cat}
+                  </option>
                 ))}
               </select>
             </div>
@@ -167,7 +203,8 @@ const AddJob = () => {
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1.5">
                 <span className="flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5" /> Location <span className="text-red-500">*</span>
+                  <MapPin className="w-3.5 h-3.5" /> Location{" "}
+                  <span className="text-red-500">*</span>
                 </span>
               </label>
               <select
@@ -176,9 +213,13 @@ const AddJob = () => {
                 required
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-shadow appearance-none"
               >
-                <option value="" disabled>Select location</option>
+                <option value="" disabled>
+                  Select location
+                </option>
                 {JobLocations.map((loc, i) => (
-                  <option key={i} value={loc}>{loc}</option>
+                  <option key={i} value={loc}>
+                    {loc}
+                  </option>
                 ))}
               </select>
             </div>
@@ -187,7 +228,8 @@ const AddJob = () => {
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1.5">
                 <span className="flex items-center gap-1.5">
-                  <BarChart2 className="w-3.5 h-3.5" /> Experience Level <span className="text-red-500">*</span>
+                  <BarChart2 className="w-3.5 h-3.5" /> Experience Level{" "}
+                  <span className="text-red-500">*</span>
                 </span>
               </label>
               <select
@@ -196,9 +238,13 @@ const AddJob = () => {
                 required
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-shadow appearance-none"
               >
-                <option value="" disabled>Select level</option>
+                <option value="" disabled>
+                  Select level
+                </option>
                 {LEVELS.map((l, i) => (
-                  <option key={i} value={l}>{l}</option>
+                  <option key={i} value={l}>
+                    {l}
+                  </option>
                 ))}
               </select>
             </div>
