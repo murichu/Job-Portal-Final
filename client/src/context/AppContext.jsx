@@ -1,37 +1,38 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 
-// Create axios instance with default config
+// ─── Axios instance ─────────────────────────────────────────────────────────
 const api = axios.create({
-  timeout: 10000, // 10 second timeout
+  timeout: 15000,
 });
 
-// Request interceptor to add auth token (user or company)
+// Attach auth token on every request
 api.interceptors.request.use(
   (config) => {
     const userToken = localStorage.getItem("Token");
     const companyToken = localStorage.getItem("companyToken");
-
-    const token = userToken || companyToken; // Prefer userToken if both exist
+    const token = userToken || companyToken;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
+// Handle 401 globally — clear tokens and redirect once
+let isRedirecting = false;
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isRedirecting) {
+      isRedirecting = true;
       localStorage.removeItem("Token");
       localStorage.removeItem("companyToken");
-      // Only redirect if not already on login page
-      if (!window.location.pathname.includes('/login')) {
+      // Reset flag after navigation settles
+      setTimeout(() => { isRedirecting = false; }, 3000);
+      if (!window.location.pathname.includes("/login")) {
         window.location.href = "/";
       }
     }
@@ -39,224 +40,212 @@ api.interceptors.response.use(
   }
 );
 
-export const AppContext = createContext(); // Create global context
+export const AppContext = createContext();
 
-export const AppContextProvider = (props) => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL; // Backend API base URL from environment variables
+export const AppContextProvider = ({ children }) => {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  // State for search filters when browsing jobs
-  const [searchFilter, setSearchFilter] = useState({
-    title: "",
-    location: "",
-  });
-
-  // Flag to indicate if a search has been performed
+  // ── Search ──────────────────────────────────────────────────────────────
+  const [searchFilter, setSearchFilter] = useState({ title: "", location: "" });
   const [isSearched, setIsSearched] = useState(false);
 
-  // List of jobs fetched from the backend
+  // ── Jobs ────────────────────────────────────────────────────────────────
   const [jobs, setJobs] = useState([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
 
-  // Controls User login modal visibility
-  const [showUserLogin, setShowUserLogin] = useState(false);
-
-  // Token for authenticated user requests
+  // ── Auth ────────────────────────────────────────────────────────────────
   const [token, setToken] = useState(null);
-
-  // Controls recruiter login modal visibility
-  const [showRecruiterLogin, setShowRecruiterLogin] = useState(false);
-
-  // Token for authenticated company requests
   const [companyToken, setCompanyToken] = useState(null);
 
-  // Company data fetched from backend
-  const [companyData, setCompanyData] = useState(null);
+  // ── Modals ──────────────────────────────────────────────────────────────
+  const [showUserLogin, setShowUserLogin] = useState(false);
+  const [showRecruiterLogin, setShowRecruiterLogin] = useState(false);
 
-  // Holds the current logged-in user's information (e.g., name, email, profile details)
+  // ── Data ────────────────────────────────────────────────────────────────
   const [userData, setUserData] = useState(null);
-
-  // Holds the list of job applications made by the current user
+  const [companyData, setCompanyData] = useState(null);
   const [userApplications, setUserApplications] = useState(null);
 
-  /**
-   * Fetches all job listings from backend
-   */
-  const fetchJobs = async (useCache = true) => {
-    // Simple cache mechanism
-    const cacheKey = "jobs_cache";
-    const cacheTimeKey = "jobs_cache_time";
-    const cacheExpiry = 5 * 60 * 1000; // 5 minutes
+  // Track in-flight fetches to prevent duplicates
+  const fetchingRef = useRef({ jobs: false, user: false, company: false });
 
-    if (useCache) {
-      const cachedJobs = localStorage.getItem(cacheKey);
-      const cacheTime = localStorage.getItem(cacheTimeKey);
+  // ─── Jobs ──────────────────────────────────────────────────────────────
+  const JOBS_CACHE_KEY = "jp_jobs_v2";
+  const JOBS_CACHE_TS_KEY = "jp_jobs_ts_v2";
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-      if (
-        cachedJobs &&
-        cacheTime &&
-        Date.now() - parseInt(cacheTime) < cacheExpiry
-      ) {
-        setJobs(JSON.parse(cachedJobs));
-        return;
+  const fetchJobs = useCallback(async (forceRefresh = false) => {
+    if (fetchingRef.current.jobs) return;
+
+    // Serve from cache when fresh
+    if (!forceRefresh) {
+      try {
+        const raw = localStorage.getItem(JOBS_CACHE_KEY);
+        const ts = localStorage.getItem(JOBS_CACHE_TS_KEY);
+        if (raw && ts && Date.now() - parseInt(ts, 10) < CACHE_TTL) {
+          setJobs(JSON.parse(raw));
+          return;
+        }
+      } catch {
+        // ignore corrupt cache
       }
     }
 
+    fetchingRef.current.jobs = true;
+    setJobsLoading(true);
     try {
       const { data } = await api.get(`${backendUrl}/api/jobs`);
-
       if (data.success) {
         setJobs(data.jobs);
-        // Cache the jobs
-        localStorage.setItem(cacheKey, JSON.stringify(data.jobs));
-        localStorage.setItem(cacheTimeKey, Date.now().toString());
+        localStorage.setItem(JOBS_CACHE_KEY, JSON.stringify(data.jobs));
+        localStorage.setItem(JOBS_CACHE_TS_KEY, Date.now().toString());
       } else {
         toast.error(data.message || "Failed to fetch jobs.");
       }
     } catch (error) {
-      console.log("fetchJobs error:", error.message);
-      if (!error.response || error.response.status >= 500) {
-        toast.error("Network error. Please check your connection.");
+      const isNetwork = !error.response || error.response.status >= 500;
+      if (isNetwork) {
+        toast.error("Network error — please check your connection.");
       } else {
         toast.error(error.response?.data?.message || "Failed to fetch jobs.");
       }
+    } finally {
+      fetchingRef.current.jobs = false;
+      setJobsLoading(false);
     }
-  };
+  }, [backendUrl]);
 
-  /**
-   * Fetches company details using the stored company token
-   */
-  const fetchCompanyData = async () => {
-    try {
-      const { data } = await api.get(`${backendUrl}/api/company/company`);
-
-      if (data.success) {
-        setCompanyData(data.company);
-        console.log(data.company);
-      } else {
-        toast.error(data.message || "Failed to fetch company data.");
-      }
-    } catch (error) {
-      console.log("fetchCompanyData error:", error.message);
-      if (!error.response || error.response.status >= 500) {
-        toast.error("Network error. Please check your connection.");
-      } else {
-        toast.error(
-          error.response?.data?.message || "Failed to fetch company data."
-        );
-      }
-    }
-  };
-
-  //Function to fetch user data
-  const fetchUserData = async () => {
+  // ─── User ──────────────────────────────────────────────────────────────
+  const fetchUserData = useCallback(async () => {
+    if (fetchingRef.current.user) return;
+    fetchingRef.current.user = true;
     try {
       const { data } = await api.get(`${backendUrl}/api/user/user`);
-
       if (data.success) {
         setUserData(data.user);
       } else {
         toast.error(data.message || "Failed to fetch user data.");
       }
     } catch (error) {
-      console.log("fetchUserData error:", error.message);
       if (error.response?.status !== 401) {
-        toast.error(
-          error.response?.data?.message || "Failed to fetch user data."
-        );
+        console.error("fetchUserData error:", error.message);
       }
+    } finally {
+      fetchingRef.current.user = false;
     }
-  };
+  }, [backendUrl]);
 
-  //Function to fetch user applications
-  const fetchUserApplications = async () => {
+  const fetchUserApplications = useCallback(async () => {
     try {
       const { data } = await api.get(`${backendUrl}/api/user/applications`);
-
       if (data.success) {
         setUserApplications(data.applications);
       }
     } catch (error) {
-      console.log("fetchUserApplications error:", error.message);
+      console.error("fetchUserApplications error:", error.message);
     }
-  };
+  }, [backendUrl]);
 
-  // Logout function
-  const logout = () => {
+  // ─── Company ───────────────────────────────────────────────────────────
+  const fetchCompanyData = useCallback(async () => {
+    if (fetchingRef.current.company) return;
+    fetchingRef.current.company = true;
+    try {
+      const { data } = await api.get(`${backendUrl}/api/company/company`);
+      if (data.success) {
+        setCompanyData(data.company);
+      } else {
+        toast.error(data.message || "Failed to fetch company data.");
+      }
+    } catch (error) {
+      if (error.response?.status !== 401) {
+        toast.error(error.response?.data?.message || "Failed to fetch company data.");
+      }
+    } finally {
+      fetchingRef.current.company = false;
+    }
+  }, [backendUrl]);
+
+  // ─── Logout ────────────────────────────────────────────────────────────
+  // Log out the job-seeker user
+  const logout = useCallback(() => {
     setToken(null);
     setUserData(null);
     setUserApplications(null);
     localStorage.removeItem("Token");
-    // Clear jobs cache on logout
-    localStorage.removeItem("jobs_cache");
-    localStorage.removeItem("jobs_cache_time");
+    localStorage.removeItem(JOBS_CACHE_KEY);
+    localStorage.removeItem(JOBS_CACHE_TS_KEY);
     toast.success("Logged out successfully");
-  };
+  }, []);
 
-  /**
-   * Runs once on component mount:
-   * - Fetches jobs
-   * - Retrieves stored company token from localStorage
-   */
+  // Log out the recruiter / company account
+  const logoutCompany = useCallback(() => {
+    setCompanyToken(null);
+    setCompanyData(null);
+    localStorage.removeItem("companyToken");
+    toast.success("Signed out successfully");
+  }, []);
+
+  // ─── Bootstrap ────────────────────────────────────────────────────────
   useEffect(() => {
     fetchJobs();
 
     const storedCompanyToken = localStorage.getItem("companyToken");
-    if (storedCompanyToken) {
-      setCompanyToken(storedCompanyToken);
-    }
+    if (storedCompanyToken) setCompanyToken(storedCompanyToken);
 
     const storedUserToken = localStorage.getItem("Token");
-    if (storedUserToken) {
-      setToken(storedUserToken); // triggers another useEffect
-    }
-  }, []);
+    if (storedUserToken) setToken(storedUserToken);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /**
-   * Runs whenever companyToken changes:
-   * - Fetches company data if token exists
-   */
   useEffect(() => {
-    if (companyToken) {
-      fetchCompanyData();
-    }
-  }, [companyToken]);
+    if (companyToken) fetchCompanyData();
+  }, [companyToken, fetchCompanyData]);
 
   useEffect(() => {
     if (token) {
       fetchUserData();
       fetchUserApplications();
     }
-  }, [token]);
+  }, [token, fetchUserData, fetchUserApplications]);
 
-  // Values accessible across the app via context
+  // ─── Context value ─────────────────────────────────────────────────────
   const value = {
     backendUrl,
+    // Search
     searchFilter,
     setSearchFilter,
     isSearched,
     setIsSearched,
+    // Jobs
     jobs,
     setJobs,
+    jobsLoading,
+    fetchJobs,
+    // Auth
     token,
     setToken,
-    showRecruiterLogin,
-    setShowRecruiterLogin,
     companyToken,
     setCompanyToken,
-    companyData,
-    setCompanyData,
+    // Modals
+    showUserLogin,
+    setShowUserLogin,
+    showRecruiterLogin,
+    setShowRecruiterLogin,
+    // Data
     userData,
     setUserData,
     fetchUserData,
+    companyData,
+    setCompanyData,
     userApplications,
     setUserApplications,
     fetchUserApplications,
-    showUserLogin,
-    setShowUserLogin,
+    // Actions
     logout,
-    api, // Expose configured axios instance
+    logoutCompany,
+    // Axios instance
+    api,
   };
 
-  return (
-    <AppContext.Provider value={value}>{props.children}</AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

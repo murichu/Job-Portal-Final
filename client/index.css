@@ -1,0 +1,212 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base Typography ──────────────────────────────── */
+* {
+  font-family: "DM Sans", sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: "DM Sans", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: #f9fafb;
+    color: #111827;
+  }
+}
+
+/* ─── Scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* ─── Rich Text Styles ──────────────────────────────── */
+.rich-text {
+  font-size: 15px;
+  color: #4b5563;
+  line-height: 1.75;
+}
+
+.rich-text p {
+  margin-bottom: 1rem;
+}
+
+.rich-text h1 {
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 1.75rem 0 0.75rem;
+  letter-spacing: -0.03em;
+}
+
+.rich-text h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 1.5rem 0 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.rich-text h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.rich-text h4, .rich-text h5, .rich-text h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 1rem 0 0.4rem;
+}
+
+.rich-text strong {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.rich-text ol {
+  margin-left: 1.5rem;
+  list-style-type: decimal;
+  margin-bottom: 1rem;
+}
+
+.rich-text ul {
+  margin-left: 1.5rem;
+  list-style-type: disc;
+  margin-bottom: 1rem;
+}
+
+.rich-text li {
+  margin-bottom: 0.4rem;
+}
+
+.rich-text a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+/* ─── Quill Editor Overrides ───────────────────────── */
+.ql-toolbar.ql-snow {
+  border: 1px solid #e5e7eb;
+  border-bottom: none;
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: #f9fafb;
+  padding: 8px 12px;
+}
+
+.ql-container.ql-snow {
+  border: 1px solid #e5e7eb;
+  border-radius: 0 0 0.5rem 0.5rem;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+}
+
+.ql-editor {
+  min-height: 200px;
+  padding: 12px 16px;
+  color: #374151;
+  line-height: 1.7;
+}
+
+.ql-editor.ql-blank::before {
+  color: #9ca3af;
+  font-style: normal;
+  font-size: 14px;
+}
+
+.ql-editor:focus {
+  outline: none;
+}
+
+.ql-container.ql-snow:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ─── Animations ────────────────────────────────────── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.35s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out both;
+}
+
+/* Modal open animation */
+.modal-enter {
+  animation: fadeInUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ─── Form select appearance ────────────────────────── */
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 36px !important;
+}
+
+/* ─── Focus ring utility ────────────────────────────── */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* ─── Line clamp ────────────────────────────────────── */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
