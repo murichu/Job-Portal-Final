@@ -220,7 +220,6 @@ npm run lint      # ESLint
 | `moment`              | Date formatting                             |
 | `k-convert`           | Salary number formatting (e.g. 75k)         |
 | `lucide-react`        | Icon library                                |
-| `@clerk/clerk-react`  | (Available — auth can be switched to Clerk) |
 
 ---
 

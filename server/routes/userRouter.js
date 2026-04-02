@@ -19,8 +19,8 @@ const userRouter = express.Router();
 userRouter.post(
   "/register",
   authRateLimit, // Apply rate limiting to registration
-  validateRequest(userRegistrationSchema),
   upload.single("image"),
+  validateRequest(userRegistrationSchema),
   handleUploadError,
   registerUser
 );
