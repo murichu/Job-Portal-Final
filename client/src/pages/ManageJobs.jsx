@@ -53,6 +53,24 @@ const ManageJobs = () => {
     }
   };
 
+  const repostJob = async (jobId) => {
+    if (updatingId) return;
+    setUpdatingId(jobId);
+    try {
+      const { data } = await api.post(`${backendUrl}/api/company/repost-job`, { id: jobId });
+      if (data.success) {
+        toast.success(data.message || "Job reposted successfully");
+        fetchCompanyJobs();
+      } else {
+        toast.error(data.message || "Failed to repost job");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to repost job");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   useEffect(() => {
     if (companyToken) fetchCompanyJobs();
   }, [companyToken, fetchCompanyJobs]);
@@ -123,8 +141,10 @@ const ManageJobs = () => {
                   <th className="px-5 py-3 text-left">Job Title</th>
                   <th className="px-5 py-3 text-left max-sm:hidden">Date</th>
                   <th className="px-5 py-3 text-left max-sm:hidden">Location</th>
+                  <th className="px-5 py-3 text-left max-sm:hidden">Deadline</th>
                   <th className="px-5 py-3 text-center">Applicants</th>
                   <th className="px-5 py-3 text-center">Visible</th>
+                  <th className="px-5 py-3 text-center">Repost</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -145,6 +165,9 @@ const ManageJobs = () => {
                         {job.location}
                       </span>
                     </td>
+                    <td className="px-5 py-4 max-sm:hidden text-gray-500 text-xs">
+                      {job.deadline ? moment(job.deadline).format("MMM D, YYYY") : "N/A"}
+                    </td>
                     <td className="px-5 py-4 text-center">
                       <span className="font-bold text-gray-700">{job.applicants || 0}</span>
                     </td>
@@ -164,6 +187,15 @@ const ManageJobs = () => {
                           <div className="w-10 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
                       )}
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <button
+                        disabled={!job.canRepost || updatingId === job._id}
+                        onClick={() => repostJob(job._id)}
+                        className="text-xs px-2.5 py-1 rounded-lg border border-blue-200 text-blue-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-50"
+                      >
+                        Repost
+                      </button>
                     </td>
                   </tr>
                 ))}

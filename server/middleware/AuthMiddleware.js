@@ -24,6 +24,14 @@ export const protectCompany = async (req, res, next) => {
     // Verify token using the secret key
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // Reject user-scoped tokens for company routes (legacy tokens without role are still accepted)
+    if (decoded.role && decoded.role !== "company") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token scope for company route.",
+      });
+    }
+
     // Check if token is expired (additional check)
     if (decoded.exp && Date.now() >= decoded.exp * 1000) {
       return res.status(401).json({

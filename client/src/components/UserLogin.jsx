@@ -17,7 +17,14 @@ const UserLogin = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
-  const { setShowUserLogin, backendUrl, setToken, setUserData } = useContext(AppContext);
+  const {
+    setShowUserLogin,
+    backendUrl,
+    setToken,
+    setUserData,
+    setCompanyToken,
+    setCompanyData,
+  } = useContext(AppContext);
 
   const validateForm = () => {
     const newErrors = {};
@@ -58,13 +65,16 @@ const UserLogin = () => {
   }, []);
 
   const handleAuthSuccess = useCallback((data) => {
+    localStorage.removeItem("companyToken");
+    setCompanyToken(null);
+    setCompanyData(null);
     setUserData(data.user);
     setToken(data.token);
     localStorage.setItem("Token", data.token);
     setShowUserLogin(false);
     toast.success(`Welcome${data.user?.name ? `, ${data.user.name.split(" ")[0]}` : ""}! 🎉`);
     navigate("/");
-  }, [setUserData, setToken, setShowUserLogin, navigate]);
+  }, [setCompanyData, setCompanyToken, setUserData, setToken, setShowUserLogin, navigate]);
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
