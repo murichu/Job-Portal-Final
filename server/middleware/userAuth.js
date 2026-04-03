@@ -41,6 +41,14 @@ export const protectUser = async (req, res, next) => {
     // Verify token using the secret key
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // Reject company-scoped tokens for user routes (legacy tokens without role are still accepted)
+    if (decoded.role && decoded.role !== "user") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token scope for user route.",
+      });
+    }
+
     // Check if token is expired (additional check)
     if (decoded.exp && Date.now() >= decoded.exp * 1000) {
       return res.status(401).json({
@@ -100,6 +108,9 @@ export const optionalAuth = async (req, res, next) => {
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded.role && decoded.role !== "user") {
+        return next();
+      }
       const user = await User.findById(decoded.id).select("-password").lean();
 
       if (user) {

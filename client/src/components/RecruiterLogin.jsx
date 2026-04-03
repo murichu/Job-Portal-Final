@@ -38,18 +38,27 @@ const RecruiterLogin = () => {
   const [isTextDataSubmitted, setIsTextDataSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { setShowRecruiterLogin, backendUrl, setCompanyToken, setCompanyData } =
-    useContext(AppContext);
+  const {
+    setShowRecruiterLogin,
+    backendUrl,
+    setCompanyToken,
+    setCompanyData,
+    setToken,
+    setUserData,
+  } = useContext(AppContext);
 
   const handleAuthSuccess = useCallback(
     (data) => {
+      localStorage.removeItem("Token");
+      setToken(null);
+      setUserData(null);
       setCompanyData(data.company);
       setCompanyToken(data.token);
       localStorage.setItem("companyToken", data.token);
       setShowRecruiterLogin(false);
       navigate("/dashboard");
     },
-    [setCompanyData, setCompanyToken, setShowRecruiterLogin, navigate]
+    [setCompanyData, setCompanyToken, setShowRecruiterLogin, navigate, setToken, setUserData]
   );
 
   const onSubmitHandler = async (e) => {

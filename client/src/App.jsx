@@ -1,4 +1,4 @@
-import React, { useContext, Suspense } from "react";
+import React, { useContext, Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AppContext } from "./context/AppContext";
 import { ToastContainer } from "react-toastify";
@@ -15,10 +15,14 @@ import Dashboard        from "./pages/Dashboard";
 import AddJob           from "./pages/AddJob";
 import ManageJobs       from "./pages/ManageJobs";
 import ViewApplications from "./pages/ViewApplications";
+import Reports          from "./pages/Reports";
 import NotFound         from "./pages/NotFound";
 
 import RecruiterLogin from "./components/RecruiterLogin";
 import UserLogin      from "./components/UserLogin";
+
+const UserProfilePage = lazy(() => import("./pages/UserProfile"));
+const CompanyProfilePage = lazy(() => import("./pages/CompanyProfile"));
 
 // ── Route guards ─────────────────────────────────────────────────────────────
 const UserRoute = ({ children }) => {
@@ -65,6 +69,10 @@ const App = () => {
             path="/applications"
             element={<UserRoute><Applications /></UserRoute>}
           />
+          <Route
+            path="/profile"
+            element={<UserRoute><UserProfilePage /></UserRoute>}
+          />
 
           {/* Recruiter dashboard (company-protected) */}
           <Route
@@ -75,6 +83,8 @@ const App = () => {
             <Route path="add-job"          element={<AddJob />} />
             <Route path="manage-jobs"      element={<ManageJobs />} />
             <Route path="view-applications" element={<ViewApplications />} />
+            <Route path="reports"          element={<Reports />} />
+            <Route path="company-profile"  element={<CompanyProfilePage />} />
           </Route>
 
           {/* 404 */}

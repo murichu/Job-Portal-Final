@@ -9,7 +9,13 @@ const jobSchema = new mongoose.Schema(
     level: { type: String, required: true },
     salary: { type: Number, required: true },
     date: { type: Date, required: true },
+    deadline: { type: Date, required: true },
     visible: { type: Boolean, default: true },
+    repostedFrom: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Job",
+      default: null,
+    },
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company",
