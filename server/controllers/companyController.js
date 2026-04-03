@@ -236,15 +236,61 @@ export const getCompanyData = async (req, res) => {
 // Allows a company to create and post a new job listing with job description, requirements, etc.
 export const postJob = async (req, res) => {
   // Destructure job details from request body
-  const { title, description, location, salary, level, category, deadline } = req.body;
+  const {
+    title,
+    description,
+    location,
+    level,
+    category,
+    deadline,
+    salaryMode = "fixed",
+    salaryAmount,
+    salaryMin,
+    salaryMax,
+    salaryVisible = true,
+    isNegotiable = false,
+  } = req.body;
 
-  // Check if any required field is missing
-  if (!title || !description || !location || !salary || !level || !category || !deadline) {
+  if (!title || !description || !location || !level || !category || !deadline) {
     return res.status(400).json({
       success: false,
       message:
-        "All fields (title, description, location, salary, level, category, deadline) are required.",
+        "All required fields (title, description, location, level, category, deadline) must be provided.",
     });
+  }
+
+  if (!["fixed", "range"].includes(salaryMode)) {
+    return res.status(400).json({ success: false, message: "Invalid salary mode." });
+  }
+
+  let normalizedSalaryAmount = null;
+  let normalizedSalaryMin = null;
+  let normalizedSalaryMax = null;
+  let legacySalary = 0;
+
+  if (!isNegotiable) {
+    if (salaryMode === "fixed") {
+      normalizedSalaryAmount = Number(salaryAmount);
+      if (!Number.isFinite(normalizedSalaryAmount) || normalizedSalaryAmount <= 0) {
+        return res.status(400).json({ success: false, message: "Fixed monthly salary must be greater than zero." });
+      }
+      legacySalary = normalizedSalaryAmount;
+    }
+
+    if (salaryMode === "range") {
+      normalizedSalaryMin = Number(salaryMin);
+      normalizedSalaryMax = Number(salaryMax);
+      if (
+        !Number.isFinite(normalizedSalaryMin) ||
+        !Number.isFinite(normalizedSalaryMax) ||
+        normalizedSalaryMin <= 0 ||
+        normalizedSalaryMax <= 0 ||
+        normalizedSalaryMax < normalizedSalaryMin
+      ) {
+        return res.status(400).json({ success: false, message: "Salary range is invalid." });
+      }
+      legacySalary = normalizedSalaryMax;
+    }
   }
 
   const parsedDeadline = new Date(deadline);
@@ -264,7 +310,13 @@ export const postJob = async (req, res) => {
       title,
       description,
       location,
-      salary,
+      salary: legacySalary,
+      salaryMode,
+      salaryAmount: normalizedSalaryAmount,
+      salaryMin: normalizedSalaryMin,
+      salaryMax: normalizedSalaryMax,
+      salaryVisible,
+      isNegotiable,
       level,
       category,
       companyId,
@@ -499,6 +551,12 @@ export const repostJob = async (req, res) => {
       category: originalJob.category,
       level: originalJob.level,
       salary: originalJob.salary,
+      salaryMode: originalJob.salaryMode || "fixed",
+      salaryAmount: originalJob.salaryAmount ?? null,
+      salaryMin: originalJob.salaryMin ?? null,
+      salaryMax: originalJob.salaryMax ?? null,
+      salaryVisible: typeof originalJob.salaryVisible === "boolean" ? originalJob.salaryVisible : true,
+      isNegotiable: originalJob.isNegotiable || false,
       companyId: originalJob.companyId,
       visible: true,
       date: new Date(),
@@ -869,10 +927,10 @@ export const downloadCompanyReportExcel = async (req, res) => {
     );
     csvLines.push("");
     csvLines.push("Jobs");
-    csvLines.push("Title,Category,Level,Location,Salary,Visible,Posted Date");
+    csvLines.push("Title,Category,Level,Location,Salary Mode,Salary,Visible,Posted Date");
     report.jobs.forEach((job) => {
       csvLines.push(
-        `"${job.title}","${job.category}","${job.level}","${job.location}",${job.salary},${
+        `"${job.title}","${job.category}","${job.level}","${job.location}","${job.salaryMode || 'fixed'}",${job.salary || 0},${
           job.visible ? "Yes" : "No"
         },"${new Date(job.date).toLocaleDateString()}"`
       );

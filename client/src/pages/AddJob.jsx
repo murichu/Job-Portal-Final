@@ -20,6 +20,16 @@ const LEVELS = [
   { label: "Senior Level", value: "Senior level" },
 ];
 
+const formatKES = (value) => {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return "";
+  return new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES",
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
 const AddJob = () => {
   const { backendUrl, companyToken, api } = useContext(AppContext);
 
@@ -27,7 +37,12 @@ const AddJob = () => {
   const [location, setLocation] = useState("");
   const [category, setCategory] = useState("");
   const [level, setLevel] = useState("");
-  const [salary, setSalary] = useState("");
+  const [salaryMode, setSalaryMode] = useState("fixed");
+  const [salaryAmount, setSalaryAmount] = useState("");
+  const [salaryMin, setSalaryMin] = useState("");
+  const [salaryMax, setSalaryMax] = useState("");
+  const [salaryVisible, setSalaryVisible] = useState(true);
+  const [isNegotiable, setIsNegotiable] = useState(false);
   const [deadline, setDeadline] = useState("");
   const [loading, setLoading] = useState(false);
   const [charCount, setCharCount] = useState(0);
@@ -59,13 +74,24 @@ const AddJob = () => {
 
   const resetForm = () => {
     setTitle("");
-    setSalary("");
+    setSalaryMode("fixed");
+    setSalaryAmount("");
+    setSalaryMin("");
+    setSalaryMax("");
+    setSalaryVisible(true);
+    setIsNegotiable(false);
     setLocation("");
     setCategory("");
     setLevel("");
     setDeadline("");
     setCharCount(0);
     if (quillRef.current) quillRef.current.root.innerHTML = "";
+  };
+
+  const getLegacySalary = () => {
+    if (isNegotiable) return 0;
+    if (salaryMode === "fixed") return Number(salaryAmount || 0);
+    return Number(salaryMax || 0);
   };
 
   const onSubmitHandler = async (e) => {
@@ -75,8 +101,22 @@ const AddJob = () => {
     if (!location) return toast.error("Please select a location");
     if (!category) return toast.error("Please select a category");
     if (!level) return toast.error("Please select a level");
-    if (!salary || Number(salary) <= 0)
-      return toast.error("Please enter a valid salary");
+
+    if (!isNegotiable) {
+      if (salaryMode === "fixed") {
+        if (!salaryAmount || Number(salaryAmount) <= 0) {
+          return toast.error("Please enter a valid fixed monthly salary");
+        }
+      } else {
+        if (!salaryMin || Number(salaryMin) <= 0 || !salaryMax || Number(salaryMax) <= 0) {
+          return toast.error("Please enter a valid salary range");
+        }
+        if (Number(salaryMax) < Number(salaryMin)) {
+          return toast.error("Salary max must be greater than or equal to salary min");
+        }
+      }
+    }
+
     if (!deadline) return toast.error("Please select a deadline");
 
     const description = quillRef.current?.root.innerHTML.trim();
@@ -87,23 +127,33 @@ const AddJob = () => {
     try {
       setLoading(true);
 
-      const { data } = await api.post(
-        `${backendUrl}/api/company/post-job`,
-        {
-          title,
-          description,
-          location,
-          salary: Number(salary),
-          category,
-          level,
-          deadline: new Date(deadline).toISOString(),
+      const payload = {
+        title,
+        description,
+        location,
+        category,
+        level,
+        salaryMode,
+        salaryVisible,
+        isNegotiable,
+        salary: getLegacySalary(),
+        deadline: new Date(deadline).toISOString(),
+      };
+
+      if (!isNegotiable && salaryMode === "fixed") {
+        payload.salaryAmount = Number(salaryAmount);
+      }
+
+      if (!isNegotiable && salaryMode === "range") {
+        payload.salaryMin = Number(salaryMin);
+        payload.salaryMax = Number(salaryMax);
+      }
+
+      const { data } = await api.post(`${backendUrl}/api/company/post-job`, payload, {
+        headers: {
+          Authorization: `Bearer ${companyToken}`,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${companyToken}`,
-          },
-        }
-      );
+      });
 
       if (data.success) {
         toast.success("Job posted successfully!");
@@ -125,13 +175,14 @@ const AddJob = () => {
     location ||
     category ||
     level ||
-    salary ||
+    salaryAmount ||
+    salaryMin ||
+    salaryMax ||
     deadline ||
     charCount > 0;
 
   return (
     <div className="max-w-3xl">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">Post a New Job</h1>
         <p className="text-sm text-gray-500 mt-0.5">
@@ -140,7 +191,6 @@ const AddJob = () => {
       </div>
 
       <form onSubmit={onSubmitHandler} className="space-y-6">
-        {/* Job Title */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Job Title <span className="text-red-500">*</span>
@@ -158,12 +208,9 @@ const AddJob = () => {
             />
           </div>
 
-          <p className="text-xs text-gray-400 mt-1 text-right">
-            {title.length}/100
-          </p>
+          <p className="text-xs text-gray-400 mt-1 text-right">{title.length}/100</p>
         </div>
 
-        {/* Job Description */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Job Description <span className="text-red-500">*</span>
@@ -172,22 +219,15 @@ const AddJob = () => {
           <div ref={editorRef} className="min-h-[220px] text-sm" />
 
           <div className="flex justify-between mt-2">
-            <p className="text-xs text-gray-400">
-              Use clear structure and bullet points
-            </p>
-
+            <p className="text-xs text-gray-400">Use clear structure and bullet points</p>
             <p className="text-xs text-gray-500">{charCount} characters</p>
           </div>
         </div>
 
-        {/* Job Details */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">
-            Job Details
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Job Details</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Category */}
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
                 <Briefcase className="w-3.5 h-3.5" /> Category *
@@ -207,7 +247,6 @@ const AddJob = () => {
               </select>
             </div>
 
-            {/* Location */}
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5" /> Location *
@@ -227,7 +266,6 @@ const AddJob = () => {
               </select>
             </div>
 
-            {/* Level */}
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
                 <BarChart2 className="w-3.5 h-3.5" /> Level *
@@ -249,18 +287,56 @@ const AddJob = () => {
           </div>
         </div>
 
-        {/* Compensation + Deadline (KES) */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">
-            Compensation & Deadline
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Compensation & Deadline</h3>
+
+          <div className="space-y-4 mb-5">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Salary Mode</label>
+              <div className="flex gap-2">
+                {[
+                  { value: "fixed", label: "Fixed" },
+                  { value: "range", label: "Range" },
+                ].map((mode) => (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    onClick={() => setSalaryMode(mode.value)}
+                    className={`px-3 py-2 rounded-lg text-sm border ${
+                      salaryMode === mode.value
+                        ? "bg-blue-50 text-blue-700 border-blue-300"
+                        : "bg-white text-gray-600 border-gray-300"
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-5">
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={salaryVisible}
+                  onChange={(e) => setSalaryVisible(e.target.checked)}
+                />
+                Salary visible to applicants
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={isNegotiable}
+                  onChange={(e) => setIsNegotiable(e.target.checked)}
+                />
+                Negotiable salary
+              </label>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {/* Deadline */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Deadline *
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Deadline *</label>
 
               <div className="relative">
                 <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -268,41 +344,67 @@ const AddJob = () => {
                   type="date"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
-                  min={
-                    new Date(Date.now() + 86400000).toISOString().split("T")[0]
-                  }
+                  min={new Date(Date.now() + 86400000).toISOString().split("T")[0]}
                   className="w-full pl-10 py-2.5 border rounded-lg text-sm"
                 />
               </div>
             </div>
 
-            {/* Salary */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Annual Salary (KES) *
-              </label>
-
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="number"
-                  value={salary}
-                  onChange={(e) => setSalary(e.target.value)}
-                  placeholder="e.g. 1200000"
-                  className="w-full pl-10 py-2.5 border rounded-lg text-sm"
-                />
-              </div>
-
-              {salary > 0 && (
-                <p className="text-xs text-gray-400 mt-1">
-                  ≈ KES {Math.round(salary / 12).toLocaleString()} / month
-                </p>
+              {salaryMode === "fixed" ? (
+                <>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Fixed Salary (KES/month){!isNegotiable ? " *" : ""}
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="number"
+                      value={salaryAmount}
+                      onChange={(e) => setSalaryAmount(e.target.value)}
+                      placeholder="e.g. 120000"
+                      disabled={isNegotiable}
+                      className="w-full pl-10 py-2.5 border rounded-lg text-sm disabled:bg-gray-100"
+                    />
+                  </div>
+                  {salaryAmount > 0 && (
+                    <p className="text-xs text-gray-400 mt-1">{formatKES(salaryAmount)} monthly</p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Salary Range (KES){!isNegotiable ? " *" : ""}
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      value={salaryMin}
+                      onChange={(e) => setSalaryMin(e.target.value)}
+                      placeholder="Min"
+                      disabled={isNegotiable}
+                      className="w-full px-3 py-2.5 border rounded-lg text-sm disabled:bg-gray-100"
+                    />
+                    <input
+                      type="number"
+                      value={salaryMax}
+                      onChange={(e) => setSalaryMax(e.target.value)}
+                      placeholder="Max"
+                      disabled={isNegotiable}
+                      className="w-full px-3 py-2.5 border rounded-lg text-sm disabled:bg-gray-100"
+                    />
+                  </div>
+                  {salaryMin > 0 && salaryMax > 0 && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      {formatKES(salaryMin)} - {formatKES(salaryMax)}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-3">
           <button
             type="submit"
