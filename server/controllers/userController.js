@@ -116,7 +116,7 @@ export const registerUser = async (req, res) => {
         email: user.email,
         image: user.image,
       },
-      token: generateToken(user._id),
+      token: generateToken(user._id, "user"),
       message: "Account created successfully",
     });
   } catch (error) {
@@ -201,7 +201,7 @@ export const loginUser = async (req, res) => {
         email: user.email,
         image: user.image,
       },
-      token: generateToken(user._id), // Generate a token for the session
+      token: generateToken(user._id, "user"), // Generate a token for the session
       message: "Login successful",
     });
   } catch (error) {
@@ -276,6 +276,13 @@ export const applyForJob = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "This job is no longer available",
+      });
+    }
+
+    if (new Date(jobData.deadline) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Application deadline has passed for this job",
       });
     }
 
@@ -409,5 +416,67 @@ export const updateUserResume = async (req, res) => {
   } catch (error) {
     console.error("updateUserResume Error:", error.message);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getUserProfileCompleteness = async (req, res) => {
+  try {
+    const user = req.user;
+    const checks = [
+      Boolean(user.name),
+      Boolean(user.email),
+      Boolean(user.image),
+      Boolean(user.resume),
+    ];
+    const completed = checks.filter(Boolean).length;
+    const percent = Math.round((completed / checks.length) * 100);
+    return res.json({
+      success: true,
+      completeness: percent,
+      completed,
+      totalChecks: checks.length,
+    });
+  } catch (error) {
+    console.error("getUserProfileCompleteness error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { name } = req.body;
+    const imageFile = req.file;
+
+    const user = await User.findById(userId).select("+password");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (name) user.name = name.trim();
+
+    if (imageFile?.path) {
+      const upload = await cloudinary.uploader.upload(imageFile.path, {
+        folder: "user_profiles",
+        transformation: [{ width: 200, height: 200, crop: "fill", quality: "auto" }],
+      });
+      user.image = upload.secure_url;
+    }
+
+    await user.save();
+    return res.json({
+      success: true,
+      message: "Profile updated successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+        resume: user.resume,
+      },
+    });
+  } catch (error) {
+    console.error("updateUserProfile error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };

@@ -15,6 +15,9 @@ import Dashboard        from "./pages/Dashboard";
 import AddJob           from "./pages/AddJob";
 import ManageJobs       from "./pages/ManageJobs";
 import ViewApplications from "./pages/ViewApplications";
+import Reports          from "./pages/Reports";
+import UserProfile      from "./pages/UserProfile";
+import CompanyProfile   from "./pages/CompanyProfile";
 import NotFound         from "./pages/NotFound";
 
 import RecruiterLogin from "./components/RecruiterLogin";
@@ -65,6 +68,10 @@ const App = () => {
             path="/applications"
             element={<UserRoute><Applications /></UserRoute>}
           />
+          <Route
+            path="/profile"
+            element={<UserRoute><UserProfile /></UserRoute>}
+          />
 
           {/* Recruiter dashboard (company-protected) */}
           <Route
@@ -75,6 +82,8 @@ const App = () => {
             <Route path="add-job"          element={<AddJob />} />
             <Route path="manage-jobs"      element={<ManageJobs />} />
             <Route path="view-applications" element={<ViewApplications />} />
+            <Route path="reports"          element={<Reports />} />
+            <Route path="company-profile"  element={<CompanyProfile />} />
           </Route>
 
           {/* 404 */}

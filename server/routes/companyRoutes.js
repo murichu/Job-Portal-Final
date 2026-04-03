@@ -5,22 +5,43 @@ import {
   getCompanyData,
   getCompanyJobApplicants,
   getCompanyPostedJobs,
+  getCompanyStages,
+  updateCompanyStages,
+  scheduleInterview,
+  submitInterviewFeedback,
+  getInterviewAnalytics,
+  sendInterviewReminders,
+  getCompanyNotifications,
+  updateCompanyRichProfile,
+  updateCompanyProfile,
+  getCompanyProfileCompleteness,
   loginCompany,
   postJob,
+  repostJob,
   registerCompany,
+  getCompanyReportsSummary,
+  downloadCompanyReportExcel,
+  downloadCompanyReportPDF,
 } from "../controllers/companyController.js";
 import upload, { handleUploadError } from "../config/multer.js";
 import { protectCompany } from "../middleware/AuthMiddleware.js";
 import { validateRequest } from "../middleware/validation.js";
-import { companyRegistrationSchema, jobPostingSchema, applicationStatusSchema } from "../utils/validation.js";
+import {
+  companyRegistrationSchema,
+  jobPostingSchema,
+  applicationStatusSchema,
+  companyStagesSchema,
+  interviewScheduleSchema,
+  feedbackSchema,
+} from "../utils/validation.js";
 
 const companyRouter = express.Router();
 
 // Register a Company
 companyRouter.post(
   "/register",
-  validateRequest(companyRegistrationSchema),
   upload.single("image"),
+  validateRequest(companyRegistrationSchema),
   handleUploadError,
   registerCompany
 );
@@ -40,6 +61,39 @@ companyRouter.get("/applications", protectCompany, getCompanyJobApplicants);
 // List all jobs posted by the company
 companyRouter.get("/list-jobs", protectCompany, getCompanyPostedJobs);
 
+// Reports
+companyRouter.get("/reports/summary", protectCompany, getCompanyReportsSummary);
+companyRouter.get("/reports/excel", protectCompany, downloadCompanyReportExcel);
+companyRouter.get("/reports/pdf", protectCompany, downloadCompanyReportPDF);
+
+// Stage & scheduling management
+companyRouter.get("/stages", protectCompany, getCompanyStages);
+companyRouter.put("/stages", protectCompany, validateRequest(companyStagesSchema), updateCompanyStages);
+companyRouter.post(
+  "/schedule-interview",
+  protectCompany,
+  validateRequest(interviewScheduleSchema),
+  scheduleInterview
+);
+companyRouter.post(
+  "/feedback",
+  protectCompany,
+  validateRequest(feedbackSchema),
+  submitInterviewFeedback
+);
+companyRouter.get("/analytics/interviews", protectCompany, getInterviewAnalytics);
+companyRouter.post("/reminders/interviews", protectCompany, sendInterviewReminders);
+companyRouter.get("/notifications", protectCompany, getCompanyNotifications);
+companyRouter.put("/rich-profile", protectCompany, updateCompanyRichProfile);
+companyRouter.post(
+  "/update-profile",
+  protectCompany,
+  upload.single("image"),
+  handleUploadError,
+  updateCompanyProfile
+);
+companyRouter.get("/profile-completeness", protectCompany, getCompanyProfileCompleteness);
+
 // Change application status (e.g., approve/reject)
 companyRouter.post(
   "/change-status",
@@ -50,5 +104,8 @@ companyRouter.post(
 
 // Change job visibility (e.g., show/hide job posting)
 companyRouter.post("/change-visibility", protectCompany, ChangeJobVisibility);
+
+// Repost expired job if no shortlisted candidate
+companyRouter.post("/repost-job", protectCompany, repostJob);
 
 export default companyRouter;
