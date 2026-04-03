@@ -65,8 +65,7 @@ export const jobPostingSchema = Joi.object({
       otherwise: Joi.number().optional().allow(null),
     }),
   }),
-  deadline: Joi.date().iso().greater('now').required(),
-  saveAsDraft: Joi.boolean().optional()
+  deadline: Joi.date().iso().greater('now').required()
 });
 
 // Job application validation schema

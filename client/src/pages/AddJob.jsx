@@ -141,7 +141,6 @@ const AddJob = () => {
         isNegotiable,
         salary: getLegacySalary(),
         deadline: new Date(deadline).toISOString(),
-        saveAsDraft: submitModeRef.current === "draft",
       };
 
       if (!isNegotiable && salaryMode === "fixed") {
@@ -409,7 +408,7 @@ const AddJob = () => {
           </div>
         </div>
 
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-3">
           <button
             type="submit"
             disabled={loading}
