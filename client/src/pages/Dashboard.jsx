@@ -8,7 +8,6 @@ const menuItems = [
   { label: "Manage Jobs",  icon: assets.home_icon,        path: "/dashboard/manage-jobs" },
   { label: "Applications", icon: assets.person_tick_icon, path: "/dashboard/view-applications" },
   { label: "Reports",      icon: assets.resume_download_icon, path: "/dashboard/reports" },
-  { label: "Company Profile", icon: assets.person_icon, path: "/dashboard/company-profile" },
 ];
 
 const Dashboard = () => {

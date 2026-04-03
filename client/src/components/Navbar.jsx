@@ -154,16 +154,6 @@ const Navbar = () => {
                     Company Dashboard
                   </button>
                   <button
-                    onClick={() => {
-                      setDropdownOpen(false);
-                      navigate("/dashboard/company-profile");
-                    }}
-                    className="flex items-center gap-2.5 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <img src={assets.person_icon} alt="" className="w-4 h-4" />
-                    Company Profile
-                  </button>
-                  <button
                     onClick={handleCompanyLogout}
                     className="flex items-center gap-2.5 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                   >

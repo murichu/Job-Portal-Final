@@ -71,7 +71,7 @@ const App = () => {
           />
           <Route
             path="/profile"
-            element={<UserRoute><UserProfilePage /></UserRoute>}
+            element={<UserRoute><UserProfile /></UserRoute>}
           />
 
           {/* Recruiter dashboard (company-protected) */}
@@ -84,7 +84,6 @@ const App = () => {
             <Route path="manage-jobs"      element={<ManageJobs />} />
             <Route path="view-applications" element={<ViewApplications />} />
             <Route path="reports"          element={<Reports />} />
-            <Route path="company-profile"  element={<CompanyProfilePage />} />
           </Route>
 
           {/* 404 */}

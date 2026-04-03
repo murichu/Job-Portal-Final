@@ -13,7 +13,6 @@ import {
   sendInterviewReminders,
   getCompanyNotifications,
   updateCompanyRichProfile,
-  updateCompanyProfile,
   getCompanyProfileCompleteness,
   loginCompany,
   postJob,
@@ -85,13 +84,6 @@ companyRouter.get("/analytics/interviews", protectCompany, getInterviewAnalytics
 companyRouter.post("/reminders/interviews", protectCompany, sendInterviewReminders);
 companyRouter.get("/notifications", protectCompany, getCompanyNotifications);
 companyRouter.put("/rich-profile", protectCompany, updateCompanyRichProfile);
-companyRouter.post(
-  "/update-profile",
-  protectCompany,
-  upload.single("image"),
-  handleUploadError,
-  updateCompanyProfile
-);
 companyRouter.get("/profile-completeness", protectCompany, getCompanyProfileCompleteness);
 
 // Change application status (e.g., approve/reject)
