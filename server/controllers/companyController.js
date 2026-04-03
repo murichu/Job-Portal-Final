@@ -711,56 +711,6 @@ export const updateCompanyRichProfile = async (req, res) => {
   }
 };
 
-export const updateCompanyProfile = async (req, res) => {
-  try {
-    const companyId = req.company._id;
-    const imageFile = req.file;
-    const {
-      recruiterName,
-      recruiterPosition,
-      companyPhone,
-      companyLocation,
-      website = "",
-      about = "",
-      culture = "",
-      benefits = [],
-      teamHighlights = [],
-    } = req.body;
-
-    const company = await Company.findById(companyId);
-    if (!company) {
-      return res.status(404).json({ success: false, message: "Company not found" });
-    }
-
-    if (recruiterName) company.recruiterName = recruiterName.trim();
-    if (recruiterPosition) company.recruiterPosition = recruiterPosition.trim();
-    if (companyPhone) company.companyPhone = companyPhone.trim();
-    if (companyLocation) company.companyLocation = companyLocation.trim();
-    company.website = website;
-    company.about = about;
-    company.culture = culture;
-    company.benefits = Array.isArray(benefits) ? benefits : String(benefits).split(",").map((s) => s.trim()).filter(Boolean);
-    company.teamHighlights = Array.isArray(teamHighlights)
-      ? teamHighlights
-      : String(teamHighlights).split(",").map((s) => s.trim()).filter(Boolean);
-
-    if (imageFile?.path) {
-      const upload = await cloudinary.uploader.upload(imageFile.path, {
-        folder: "company_profiles",
-        transformation: [{ width: 200, height: 200, crop: "fill", quality: "auto" }],
-      });
-      company.image = upload.secure_url;
-    }
-
-    await company.save();
-    const companySafe = await Company.findById(company._id).select("-password").lean();
-    return res.json({ success: true, message: "Company profile updated", company: companySafe });
-  } catch (error) {
-    console.error("updateCompanyProfile error:", error);
-    return res.status(500).json({ success: false, message: "Server error." });
-  }
-};
-
 export const getCompanyProfileCompleteness = async (req, res) => {
   const company = req.company;
   const checks = [
