@@ -15,12 +15,6 @@ const jobSchema = new mongoose.Schema(
     salaryMax: { type: Number, default: null },
     salaryVisible: { type: Boolean, default: true },
     isNegotiable: { type: Boolean, default: false },
-    uniqueId: {
-      type: String,
-      unique: true,
-      required: true,
-      default: () => new mongoose.Types.ObjectId().toString(),
-    },
     date: { type: Date, required: true },
     deadline: { type: Date, required: true },
     visible: { type: Boolean, default: true },
