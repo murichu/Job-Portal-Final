@@ -34,7 +34,37 @@ export const jobPostingSchema = Joi.object({
   location: Joi.string().min(2).max(50).required(),
   category: Joi.string().valid('Programming', 'Data Science', 'Designing', 'Networking', 'Management', 'Marketing', 'Cybersecurity').required(),
   level: Joi.string().valid('Beginner level', 'Intermediate level', 'Senior level').required(),
-  salary: Joi.number().min(0).max(1000000).required(),
+  salaryMode: Joi.string().valid('fixed', 'range').default('fixed'),
+  salaryVisible: Joi.boolean().default(true),
+  isNegotiable: Joi.boolean().default(false),
+  salary: Joi.number().min(0).max(1000000000).optional(),
+  salaryAmount: Joi.when('isNegotiable', {
+    is: true,
+    then: Joi.number().min(0).max(1000000000).optional().allow(null),
+    otherwise: Joi.when('salaryMode', {
+      is: 'fixed',
+      then: Joi.number().min(1).max(1000000000).required(),
+      otherwise: Joi.number().optional().allow(null),
+    }),
+  }),
+  salaryMin: Joi.when('isNegotiable', {
+    is: true,
+    then: Joi.number().min(0).max(1000000000).optional().allow(null),
+    otherwise: Joi.when('salaryMode', {
+      is: 'range',
+      then: Joi.number().min(1).max(1000000000).required(),
+      otherwise: Joi.number().optional().allow(null),
+    }),
+  }),
+  salaryMax: Joi.when('isNegotiable', {
+    is: true,
+    then: Joi.number().min(0).max(1000000000).optional().allow(null),
+    otherwise: Joi.when('salaryMode', {
+      is: 'range',
+      then: Joi.number().min(Joi.ref('salaryMin')).max(1000000000).required(),
+      otherwise: Joi.number().optional().allow(null),
+    }),
+  }),
   deadline: Joi.date().iso().greater('now').required()
 });
 
