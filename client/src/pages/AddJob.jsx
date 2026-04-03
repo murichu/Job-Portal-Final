@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState, useContext } from "react";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
 import { JobCategories, JobLocations } from "../assets/assets";
-
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 import {
@@ -41,7 +40,7 @@ const AddJob = () => {
       quillRef.current = new Quill(editorRef.current, {
         theme: "snow",
         placeholder:
-          "Describe the role, responsibilities, requirements, and what makes this opportunity exciting...",
+          "Describe the role, responsibilities, requirements, and expectations...",
         modules: {
           toolbar: [
             [{ header: [2, 3, false] }],
@@ -51,6 +50,7 @@ const AddJob = () => {
           ],
         },
       });
+
       quillRef.current.on("text-change", () => {
         setCharCount(quillRef.current.getText().trim().length);
       });
@@ -77,7 +77,7 @@ const AddJob = () => {
     if (!level) return toast.error("Please select a level");
     if (!salary || Number(salary) <= 0)
       return toast.error("Please enter a valid salary");
-    if (!deadline) return toast.error("Please select an application deadline");
+    if (!deadline) return toast.error("Please select a deadline");
 
     const description = quillRef.current?.root.innerHTML.trim();
     if (!description || description === "<p><br></p>") {
@@ -86,6 +86,7 @@ const AddJob = () => {
 
     try {
       setLoading(true);
+
       const { data } = await api.post(
         `${backendUrl}/api/company/post-job`,
         {
@@ -120,11 +121,17 @@ const AddJob = () => {
   };
 
   const isFormDirty =
-    title || location || category || level || salary || deadline || charCount > 0;
+    title ||
+    location ||
+    category ||
+    level ||
+    salary ||
+    deadline ||
+    charCount > 0;
 
   return (
     <div className="max-w-3xl">
-      {/* Page Header */}
+      {/* Header */}
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-900">Post a New Job</h1>
         <p className="text-sm text-gray-500 mt-0.5">
@@ -138,41 +145,21 @@ const AddJob = () => {
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Job Title <span className="text-red-500">*</span>
           </label>
+
           <div className="relative">
             <Type className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="e.g. Senior Frontend Developer"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={100}
-              required
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+              placeholder="e.g. Senior Frontend Developer"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <p className="text-xs text-gray-400 mt-1.5 text-right">
-            {title.length}/100
-          </p>
-        </div>
 
-        {/* Deadline Date */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Deadline Date <span className="text-red-500">*</span>
-          </label>
-          <div className="relative w-full sm:w-56">
-            <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <input
-              type="date"
-              value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0]}
-              required
-              className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Choose the last date candidates can apply.
+          <p className="text-xs text-gray-400 mt-1 text-right">
+            {title.length}/100
           </p>
         </div>
 
@@ -181,49 +168,40 @@ const AddJob = () => {
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Job Description <span className="text-red-500">*</span>
           </label>
-          <div ref={editorRef} className="rounded-lg min-h-[220px] text-sm" />
-          <div className="flex items-center justify-between mt-2">
+
+          <div ref={editorRef} className="min-h-[220px] text-sm" />
+
+          <div className="flex justify-between mt-2">
             <p className="text-xs text-gray-400">
-              Use headings and lists to make your description scannable.
+              Use clear structure and bullet points
             </p>
-            <p
-              className={`text-xs font-medium ${
-                charCount < 100 ? "text-amber-500" : "text-green-600"
-              }`}
-            >
-              {charCount < 100
-                ? `${100 - charCount} more chars recommended`
-                : `✓ ${charCount} characters`}
-            </p>
+
+            <p className="text-xs text-gray-500">{charCount} characters</p>
           </div>
         </div>
 
-        {/* Category, Location, Level */}
+        {/* Job Details */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">
             Job Details
           </h3>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Category */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                <span className="flex items-center gap-1.5">
-                  <Briefcase className="w-3.5 h-3.5" /> Category{" "}
-                  <span className="text-red-500">*</span>
-                </span>
+              <label className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
+                <Briefcase className="w-3.5 h-3.5" /> Category *
               </label>
+
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                required
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-shadow appearance-none"
+                className="w-full px-3 py-2.5 border rounded-lg text-sm"
               >
-                <option value="" disabled>
-                  Select category
-                </option>
-                {JobCategories.map((cat, i) => (
-                  <option key={i} value={cat}>
-                    {cat}
+                <option value="">Select</option>
+                {JobCategories.map((c, i) => (
+                  <option key={i} value={c}>
+                    {c}
                   </option>
                 ))}
               </select>
@@ -231,24 +209,19 @@ const AddJob = () => {
 
             {/* Location */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5" /> Location{" "}
-                  <span className="text-red-500">*</span>
-                </span>
+              <label className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5" /> Location *
               </label>
+
               <select
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                required
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-shadow appearance-none"
+                className="w-full px-3 py-2.5 border rounded-lg text-sm"
               >
-                <option value="" disabled>
-                  Select location
-                </option>
-                {JobLocations.map((loc, i) => (
-                  <option key={i} value={loc}>
-                    {loc}
+                <option value="">Select</option>
+                {JobLocations.map((l, i) => (
+                  <option key={i} value={l}>
+                    {l}
                   </option>
                 ))}
               </select>
@@ -256,21 +229,16 @@ const AddJob = () => {
 
             {/* Level */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                <span className="flex items-center gap-1.5">
-                  <BarChart2 className="w-3.5 h-3.5" /> Experience Level{" "}
-                  <span className="text-red-500">*</span>
-                </span>
+              <label className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
+                <BarChart2 className="w-3.5 h-3.5" /> Level *
               </label>
+
               <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value)}
-                required
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-shadow appearance-none"
+                className="w-full px-3 py-2.5 border rounded-lg text-sm"
               >
-                <option value="" disabled>
-                  Select level
-                </option>
+                <option value="">Select</option>
                 {LEVELS.map((l, i) => (
                   <option key={i} value={l.value}>
                     {l.label}
@@ -281,56 +249,86 @@ const AddJob = () => {
           </div>
         </div>
 
-        {/* Salary */}
+        {/* Compensation + Deadline (KES) */}
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Annual Salary (USD) <span className="text-red-500">*</span>
-          </label>
-          <div className="relative w-full sm:w-56">
-            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="number"
-              min={0}
-              value={salary}
-              onChange={(e) => setSalary(e.target.value)}
-              placeholder="e.g. 75000"
-              required
-              className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
-            />
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">
+            Compensation & Deadline
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Deadline */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Deadline *
+              </label>
+
+              <div className="relative">
+                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="date"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  min={
+                    new Date(Date.now() + 86400000).toISOString().split("T")[0]
+                  }
+                  className="w-full pl-10 py-2.5 border rounded-lg text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Salary */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Annual Salary (KES) *
+              </label>
+
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="number"
+                  value={salary}
+                  onChange={(e) => setSalary(e.target.value)}
+                  placeholder="e.g. 1200000"
+                  className="w-full pl-10 py-2.5 border rounded-lg text-sm"
+                />
+              </div>
+
+              {salary > 0 && (
+                <p className="text-xs text-gray-400 mt-1">
+                  ≈ KES {Math.round(salary / 12).toLocaleString()} / month
+                </p>
+              )}
+            </div>
           </div>
-          {salary && Number(salary) > 0 && (
-            <p className="text-xs text-gray-400 mt-1.5">
-              ≈ ${Math.round(Number(salary) / 12).toLocaleString()} / month
-            </p>
-          )}
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-3 pb-6">
+        <div className="flex gap-3">
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg font-semibold text-sm transition-colors shadow-sm"
+            className="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm flex items-center gap-2"
           >
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Posting Job...
+                <Loader2 className="animate-spin w-4 h-4" />
+                Posting...
               </>
             ) : (
               <>
-                <Briefcase className="h-4 w-4" />
+                <Briefcase className="w-4 h-4" />
                 Post Job
               </>
             )}
           </button>
+
           {isFormDirty && !loading && (
             <button
               type="button"
               onClick={resetForm}
-              className="text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 px-5 py-2.5 rounded-lg text-sm transition-colors"
+              className="px-5 py-2.5 border rounded-lg text-sm text-gray-600"
             >
-              Clear Form
+              Clear
             </button>
           )}
         </div>

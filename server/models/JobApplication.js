@@ -20,67 +20,132 @@ const JobApplicationSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+
     status: {
-      type:
-         String,
- 
-            enum: ["P
-    e   nding", "Longl
-   i    sted", "Sh,
-        "Offer",
-        "Hired",
-      ortlisted", "Rejected"],
+      type: String,
+      enum: ["Pending", "Longlisted", "Shortlisted", "Rejected"],
       default: "Pending",
       index: true,
     },
+
     stage: {
       type: String,
+      enum: ["Applied", "Screening", "Interview", "Offer", "Hired", "Rejected"],
       default: "Applied",
       index: true,
     },
+
     timeline: [
       {
-        stage: { type: String, required: true },
-        status: { type: String, required: true },
-        note: { type: String, default: "" },
-        changedAt: { type: Date, default: Date.now },
-        changedBy: { type: String, default: "System" },
+        stage: {
+          type: String,
+          required: true,
+        },
+        status: {
+          type: String,
+          required: true,
+        },
+        note: {
+          type: String,
+          default: "",
+        },
+        changedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        changedBy: {
+          type: String,
+          default: "System",
+        },
       },
     ],
+
     interview: {
-      scheduledAt: { type: Date, default: null },
-      meetLink: { type: String, default: "" },
-      reminderSent: { type: Boolean, default: false },
-      notes: { type: String, default: "" },
+      scheduledAt: {
+        type: Date,
+        default: null,
+      },
+      meetLink: {
+        type: String,
+        default: "",
+      },
+      reminderSent: {
+        type: Boolean,
+        default: false,
+      },
+      notes: {
+        type: String,
+        default: "",
+      },
     },
+
     feedback: [
       {
-        interviewerName: { type: String, required: true },
-        satisfaction: { type: Number, min: 1, max: 5, required: true },
-        candidateScore: { type: Number, min: 1, max: 5, required: true },
-        communication: { type: Number, min: 1, max: 5, required: true },
-        technical: { type: Number, min: 1, max: 5, required: true },
+        interviewerName: {
+          type: String,
+          required: true,
+        },
+        satisfaction: {
+          type: Number,
+          min: 1,
+          max: 5,
+          required: true,
+        },
+        candidateScore: {
+          type: Number,
+          min: 1,
+          max: 5,
+          required: true,
+        },
+        communication: {
+          type: Number,
+          min: 1,
+          max: 5,
+          required: true,
+        },
+        technical: {
+          type: Number,
+          min: 1,
+          max: 5,
+          required: true,
+        },
         recommendation: {
           type: String,
           enum: ["Strong No", "No", "Maybe", "Yes", "Strong Yes"],
           required: true,
         },
-        notes: { type: String, default: "" },
-        createdAt: { type: Date, default: Date.now },
+        notes: {
+          type: String,
+          default: "",
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
-    date: { type: Date, default: Date.now, required: true },
+
+    date: {
+      type: Date,
+      default: Date.now,
+      required: true,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-// Compound indexes
-JobApplicationSchema.index({ userId: 1, jobId: 1 }, { unique: true }); // No duplicate apps per job/user
-JobApplicationSchema.index({ companyId: 1, date: -1 }); // Fast recent apps lookup by company
+// Prevent duplicate applications per user per job
+JobApplicationSchema.index({ userId: 1, jobId: 1 }, { unique: true });
 
-// Safe model creation for serverless / hot reload environments
+// Optimize company queries (latest applications first)
+JobApplicationSchema.index({ companyId: 1, date: -1 });
+
+// Safe model creation (prevents overwrite in dev/hot reload)
 const JobApplication =
   mongoose.models.JobApplication ||
   mongoose.model("JobApplication", JobApplicationSchema);
 
 export default JobApplication;
+
