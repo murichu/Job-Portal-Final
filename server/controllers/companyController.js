@@ -766,17 +766,31 @@ export const ChangeJobVisibility = async (req, res) => {
       });
     }
 
-    // Toggle the job's visibility status (true → false or false → true)
-    job.visible = !job.visible;
+    const nextVisibility = !job.visible;
 
-    // Save the updated job to the database
-    await job.save();
+    // Prevent hiding jobs that already have applications.
+    if (!nextVisibility) {
+      const applicationsCount = await JobApplication.countDocuments({ jobId: job._id });
+      if (applicationsCount > 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Jobs with applications cannot be hidden.",
+        });
+      }
+    }
+
+    // Update only visibility to avoid re-validating legacy fields on full document save.
+    const updatedJob = await Job.findByIdAndUpdate(
+      job._id,
+      { $set: { visible: nextVisibility } },
+      { new: true }
+    );
 
     // Respond with a success message and the updated job
     res.json({
       success: true,
       message: "Job visibility updated successfully.",
-      job,
+      job: updatedJob,
     });
   } catch (error) {
     // Log any unexpected server errors

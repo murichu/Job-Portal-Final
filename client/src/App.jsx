@@ -88,6 +88,10 @@ const App = () => {
               </ProtectedUserRoute>
             }
           />
+          <Route
+            path="/profile"
+            element={<UserRoute><UserProfilePage /></UserRoute>}
+          />
 
           <Route
             path="/profile"
