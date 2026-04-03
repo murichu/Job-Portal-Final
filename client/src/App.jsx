@@ -1,4 +1,4 @@
-import React, { useContext, Suspense } from "react";
+import React, { useContext, Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AppContext } from "./context/AppContext";
 import { ToastContainer } from "react-toastify";
@@ -20,6 +20,9 @@ import NotFound         from "./pages/NotFound";
 
 import RecruiterLogin from "./components/RecruiterLogin";
 import UserLogin      from "./components/UserLogin";
+
+const UserProfilePage = lazy(() => import("./pages/UserProfile"));
+const CompanyProfilePage = lazy(() => import("./pages/CompanyProfile"));
 
 // ── Route guards ─────────────────────────────────────────────────────────────
 const UserRoute = ({ children }) => {
