@@ -21,8 +21,15 @@ const JobApplicationSchema = new mongoose.Schema(
       index: true,
     },
     status: {
-      type: String,
-      enum: ["Pending", "Longlisted", "Shortlisted", "Rejected"],
+      type:
+         String,
+ 
+            enum: ["P
+    e   nding", "Longl
+   i    sted", "Sh,
+        "Offer",
+        "Hired",
+      ortlisted", "Rejected"],
       default: "Pending",
       index: true,
     },
