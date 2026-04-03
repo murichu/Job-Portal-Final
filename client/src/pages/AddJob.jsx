@@ -45,10 +45,12 @@ const AddJob = () => {
   const [isNegotiable, setIsNegotiable] = useState(false);
   const [deadline, setDeadline] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saveAsDraft, setSaveAsDraft] = useState(false);
   const [charCount, setCharCount] = useState(0);
 
   const editorRef = useRef(null);
   const quillRef = useRef(null);
+  const submitModeRef = useRef("approval");
 
   useEffect(() => {
     if (!quillRef.current && editorRef.current) {
@@ -85,6 +87,7 @@ const AddJob = () => {
     setLevel("");
     setDeadline("");
     setCharCount(0);
+    setSaveAsDraft(false);
     if (quillRef.current) quillRef.current.root.innerHTML = "";
   };
 
@@ -156,7 +159,7 @@ const AddJob = () => {
       });
 
       if (data.success) {
-        toast.success("Job posted successfully!");
+        toast.success(data.message || "Job saved successfully!");
         resetForm();
       } else {
         toast.error(data.message);
@@ -409,18 +412,35 @@ const AddJob = () => {
           <button
             type="submit"
             disabled={loading}
+            onClick={() => { submitModeRef.current = "approval"; setSaveAsDraft(false); }}
             className="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm flex items-center gap-2"
           >
-            {loading ? (
+            {loading && !saveAsDraft ? (
               <>
                 <Loader2 className="animate-spin w-4 h-4" />
-                Posting...
+                Submitting...
               </>
             ) : (
               <>
                 <Briefcase className="w-4 h-4" />
-                Post Job
+                Submit for Approval
               </>
+            )}
+          </button>
+
+          <button
+            type="submit"
+            disabled={loading}
+            onClick={() => { submitModeRef.current = "draft"; setSaveAsDraft(true); }}
+            className="bg-gray-800 text-white px-6 py-2.5 rounded-lg text-sm flex items-center gap-2"
+          >
+            {loading && saveAsDraft ? (
+              <>
+                <Loader2 className="animate-spin w-4 h-4" />
+                Saving...
+              </>
+            ) : (
+              "Save Draft"
             )}
           </button>
 

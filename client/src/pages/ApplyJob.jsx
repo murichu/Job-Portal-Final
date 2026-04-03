@@ -174,6 +174,10 @@ const ApplyJob = () => {
                     <img src={assets.suitcase_icon} alt="" className="w-3.5 h-3.5" />
                     {jobData.category}
                   </span>
+                  <span className="flex items-center gap-1.5">
+                    <img src={assets.suitcase_icon} alt="" className="w-3.5 h-3.5" />
+                    Deadline: {moment(jobData.deadline).format("MMM D, YYYY")}
+                  </span>
                 </div>
               </div>
             </div>

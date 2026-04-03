@@ -21,6 +21,8 @@ import {
   getCompanyReportsSummary,
   downloadCompanyReportExcel,
   downloadCompanyReportPDF,
+  moderateJobApproval,
+  softDeleteJob,
 } from "../controllers/companyController.js";
 import upload, { handleUploadError } from "../config/multer.js";
 import { protectCompany } from "../middleware/AuthMiddleware.js";
@@ -32,6 +34,8 @@ import {
   companyStagesSchema,
   interviewScheduleSchema,
   feedbackSchema,
+  jobModerationSchema,
+  jobDeleteSchema,
 } from "../utils/validation.js";
 
 const companyRouter = express.Router();
@@ -99,5 +103,8 @@ companyRouter.post("/change-visibility", protectCompany, ChangeJobVisibility);
 
 // Repost expired job if no shortlisted candidate
 companyRouter.post("/repost-job", protectCompany, repostJob);
+companyRouter.post("/moderate-job", protectCompany, validateRequest(jobModerationSchema), moderateJobApproval);
+companyRouter.post("/delete-job", protectCompany, validateRequest(jobDeleteSchema), softDeleteJob);
+
 
 export default companyRouter;

@@ -99,3 +99,14 @@ export const feedbackSchema = Joi.object({
   recommendation: Joi.string().valid('Strong No', 'No', 'Maybe', 'Yes', 'Strong Yes').required(),
   notes: Joi.string().allow('').max(500).optional()
 });
+
+
+export const jobModerationSchema = Joi.object({
+  id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
+  decision: Joi.string().valid('approved', 'rejected').required(),
+  note: Joi.string().allow('').max(300).optional()
+});
+
+export const jobDeleteSchema = Joi.object({
+  id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
+});

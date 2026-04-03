@@ -7,6 +7,13 @@ import Job from "../models/Job.js";
 import JobApplication from "../models/JobApplication.js";
 import mongoose from "mongoose";
 
+const deriveJobStatus = (job) => {
+  if (job?.isDeleted) return "expired";
+  if (job?.jobStatus === "draft") return "draft";
+  if (new Date(job?.deadline) < new Date()) return "expired";
+  return "active";
+};
+
 // Register a company
 // Handles creating a new company account with provided details such as name, email, password, etc.
 export const registerCompany = async (req, res) => {
@@ -515,7 +522,7 @@ export const getCompanyPostedJobs = async (req, res) => {
     }
 
     // Fetch all jobs posted by this company, sorted by newest first
-    const jobs = await Job.find({ companyId }).sort({ createdAt: -1 }).lean();
+    const jobs = await Job.find({ companyId, isDeleted: { $ne: true } }).sort({ createdAt: -1 }).lean();
 
     // Adding number of applicants for each job
     const jobsData = await Promise.all(
@@ -527,11 +534,11 @@ export const getCompanyPostedJobs = async (req, res) => {
           jobId: job._id,
           status: "Shortlisted",
         });
-        const isExpired = new Date(job.deadline) < new Date();
+        const status = deriveJobStatus(job);
+        const isExpired = status === "expired";
         const canRepost = isExpired && shortlistedCount === 0;
 
-        // Spread job directly since .lean() returns plain objects
-        return { ...job, applicants, shortlistedCount, isExpired, canRepost };
+        return { ...job, jobStatus: status, applicants, shortlistedCount, isExpired, canRepost };
       })
     );
 
@@ -888,7 +895,7 @@ export const ChangeJobVisibility = async (req, res) => {
     const companyId = req.company._id;
 
     // Find the job by its ID
-    const job = await Job.findById(id);
+    const job = await Job.findOne({ _id: id, isDeleted: { $ne: true } });
 
     // If job doesn't exist, return a 404 error
     if (!job) {
@@ -903,6 +910,13 @@ export const ChangeJobVisibility = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to modify this job.",
+      });
+    }
+
+    if (job.approvalStatus !== "approved") {
+      return res.status(400).json({
+        success: false,
+        message: "Only approved jobs can be made visible.",
       });
     }
 
@@ -944,9 +958,70 @@ export const ChangeJobVisibility = async (req, res) => {
   }
 };
 
+export const moderateJobApproval = async (req, res) => {
+  try {
+    const { id, decision, note = "" } = req.body;
+    const companyId = req.company._id;
+    const job = await Job.findOne({ _id: id, companyId, isDeleted: { $ne: true } });
+
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found." });
+    }
+
+    job.approvalStatus = decision;
+    job.approvalNote = note;
+
+    if (decision === "approved") {
+      job.approvedAt = new Date();
+      job.jobStatus = new Date(job.deadline) < new Date() ? "expired" : "active";
+      job.visible = job.jobStatus === "active";
+    } else {
+      job.jobStatus = "draft";
+      job.visible = false;
+    }
+
+    await job.save();
+    return res.json({ success: true, message: `Job ${decision} successfully.`, job });
+  } catch (error) {
+    console.error("moderateJobApproval error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const softDeleteJob = async (req, res) => {
+  try {
+    const { id } = req.body;
+    const companyId = req.company._id;
+
+    const job = await Job.findOne({ _id: id, companyId, isDeleted: { $ne: true } });
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found." });
+    }
+
+    const applicationsCount = await JobApplication.countDocuments({ jobId: job._id });
+    if (applicationsCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete a job that already has applications.",
+      });
+    }
+
+    job.isDeleted = true;
+    job.deletedAt = new Date();
+    job.visible = false;
+    job.jobStatus = "expired";
+    await job.save();
+
+    return res.json({ success: true, message: "Job deleted successfully." });
+  } catch (error) {
+    console.error("softDeleteJob error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
 const buildCompanyReport = async (companyId) => {
   const [jobs, applications] = await Promise.all([
-    Job.find({ companyId }).sort({ createdAt: -1 }).lean(),
+    Job.find({ companyId, isDeleted: { $ne: true } }).sort({ createdAt: -1 }).lean(),
     JobApplication.find({ companyId })
       .populate("jobId", "title")
       .populate("userId", "name email")
