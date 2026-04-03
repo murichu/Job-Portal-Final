@@ -6,7 +6,13 @@ export const getJobs = async (req, res) => {
   try {
     // Find jobs that are marked as visible, populate related company data (excluding password),
     // and sort them by creation date in descending order (newest first)
-    const jobs = await Job.find({ visible: true, deadline: { $gte: new Date() } })
+    const jobs = await Job.find({
+      visible: true,
+      deadline: { $gte: new Date() },
+      isDeleted: { $ne: true },
+      approvalStatus: "approved",
+      jobStatus: "active",
+    })
       .populate({
         path: "companyId",
         select: "-password", // Exclude password field from populated company data
@@ -41,7 +47,12 @@ export const getJobById = async (req, res) => {
     }
 
     // Find the job by ID and populate company data (excluding password)
-    const job = await Job.findById(id).populate({
+    const job = await Job.findOne({
+      _id: id,
+      isDeleted: { $ne: true },
+      approvalStatus: "approved",
+      jobStatus: "active",
+    }).populate({
       path: "companyId",
       select: "-password",
     });
