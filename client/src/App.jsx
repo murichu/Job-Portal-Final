@@ -30,7 +30,7 @@ import Reports from "./pages/Reports";
 import RecruiterLogin from "./components/RecruiterLogin";
 import UserLogin from "./components/UserLogin";
 
-// Lazy Loaded Pages (for performance)
+// Lazy-loaded pages
 const UserProfilePage = lazy(() => import("./pages/UserProfile"));
 const CompanyProfilePage = lazy(() => import("./pages/CompanyProfile"));
 
@@ -38,13 +38,11 @@ const CompanyProfilePage = lazy(() => import("./pages/CompanyProfile"));
    Route Guards
 ───────────────────────────────────────────── */
 
-// Protect normal users
 const ProtectedUserRoute = ({ children }) => {
   const { token } = useContext(AppContext);
   return token ? children : <Navigate to="/" replace />;
 };
 
-// Protect company/recruiter routes
 const ProtectedCompanyRoute = ({ children }) => {
   const { companyToken } = useContext(AppContext);
   return companyToken ? children : <Navigate to="/" replace />;
@@ -59,11 +57,11 @@ const App = () => {
 
   return (
     <ErrorBoundary>
-      {/* Global Modals (Auth) */}
+      {/* Auth Modals */}
       {showUserLogin && <UserLogin />}
       {showRecruiterLogin && <RecruiterLogin />}
 
-      {/* Global Notifications */}
+      {/* Notifications */}
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -72,14 +70,14 @@ const App = () => {
         theme="light"
       />
 
-      {/* Lazy Loading Wrapper */}
+      {/* Routes */}
       <Suspense fallback={<Loading />}>
         <Routes>
-          {/* ── Public Routes ── */}
+          {/* Public */}
           <Route path="/" element={<Home />} />
           <Route path="/apply-job/:id" element={<ApplyJob />} />
 
-          {/* ── User Routes ── */}
+          {/* User Protected */}
           <Route
             path="/applications"
             element={
@@ -90,11 +88,6 @@ const App = () => {
           />
           <Route
             path="/profile"
-            element={<UserRoute><UserProfilePage /></UserRoute>}
-          />
-
-          <Route
-            path="/profile"
             element={
               <ProtectedUserRoute>
                 <UserProfilePage />
@@ -102,7 +95,7 @@ const App = () => {
             }
           />
 
-          {/* ── Company / Recruiter Routes ── */}
+          {/* Company Protected */}
           <Route
             path="/dashboard"
             element={
@@ -111,10 +104,7 @@ const App = () => {
               </ProtectedCompanyRoute>
             }
           >
-            {/* Default redirect */}
             <Route index element={<Navigate to="manage-jobs" replace />} />
-
-            {/* Nested routes */}
             <Route path="add-job" element={<AddJob />} />
             <Route path="manage-jobs" element={<ManageJobs />} />
             <Route path="view-applications" element={<ViewApplications />} />
@@ -130,7 +120,7 @@ const App = () => {
             }
           />
 
-          {/* ── Fallback (404) ── */}
+          {/* 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
