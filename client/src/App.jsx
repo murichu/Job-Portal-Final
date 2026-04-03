@@ -66,6 +66,10 @@ const App = () => {
             path="/applications"
             element={<UserRoute><Applications /></UserRoute>}
           />
+          <Route
+            path="/profile"
+            element={<UserRoute><UserProfile /></UserRoute>}
+          />
 
           {/* Recruiter dashboard (company-protected) */}
           <Route

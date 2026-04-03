@@ -82,6 +82,14 @@ const Navbar = () => {
                     </p>
                   </div>
                   <Link
+                    to="/profile"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <img src={assets.person_icon} alt="" className="w-4 h-4" />
+                    My Profile
+                  </Link>
+                  <Link
                     to="/applications"
                     onClick={() => setDropdownOpen(false)}
                     className="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
