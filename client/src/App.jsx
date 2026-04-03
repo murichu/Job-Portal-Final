@@ -1,92 +1,132 @@
 import React, { useContext, Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AppContext } from "./context/AppContext";
+
+// UI / Utilities
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "quill/dist/quill.snow.css";
 
+// Core Components
 import ErrorBoundary from "./components/ErrorBoundary";
-import Loading       from "./components/Loading";
+import Loading from "./components/Loading";
 
-import Home             from "./pages/Home";
-import ApplyJob         from "./pages/ApplyJob";
-import Applications     from "./pages/Applications";
-import Dashboard        from "./pages/Dashboard";
-import AddJob           from "./pages/AddJob";
-import ManageJobs       from "./pages/ManageJobs";
+// Public Pages
+import Home from "./pages/Home";
+import ApplyJob from "./pages/ApplyJob";
+import NotFound from "./pages/NotFound";
+
+// User Pages
+import Applications from "./pages/Applications";
+
+// Company Pages
+import Dashboard from "./pages/Dashboard";
+import AddJob from "./pages/AddJob";
+import ManageJobs from "./pages/ManageJobs";
 import ViewApplications from "./pages/ViewApplications";
-import Reports          from "./pages/Reports";
-import NotFound         from "./pages/NotFound";
+import Reports from "./pages/Reports";
 
+// Auth Components
 import RecruiterLogin from "./components/RecruiterLogin";
-import UserLogin      from "./components/UserLogin";
+import UserLogin from "./components/UserLogin";
 
+// Lazy Loaded Pages (for performance)
 const UserProfilePage = lazy(() => import("./pages/UserProfile"));
 const CompanyProfilePage = lazy(() => import("./pages/CompanyProfile"));
 
-// ── Route guards ─────────────────────────────────────────────────────────────
-const UserRoute = ({ children }) => {
+/* ─────────────────────────────────────────────
+   Route Guards
+───────────────────────────────────────────── */
+
+// Protect normal users
+const ProtectedUserRoute = ({ children }) => {
   const { token } = useContext(AppContext);
   return token ? children : <Navigate to="/" replace />;
 };
 
-const CompanyRoute = ({ children }) => {
+// Protect company/recruiter routes
+const ProtectedCompanyRoute = ({ children }) => {
   const { companyToken } = useContext(AppContext);
   return companyToken ? children : <Navigate to="/" replace />;
 };
 
-// ── App ───────────────────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────
+   App Component
+───────────────────────────────────────────── */
+
 const App = () => {
   const { showRecruiterLogin, showUserLogin } = useContext(AppContext);
 
   return (
     <ErrorBoundary>
-      {/* Auth modals — portal-like overlays above all content */}
-      {showUserLogin     && <UserLogin />}
+      {/* Global Modals (Auth) */}
+      {showUserLogin && <UserLogin />}
       {showRecruiterLogin && <RecruiterLogin />}
 
-      {/* Toasts */}
+      {/* Global Notifications */}
       <ToastContainer
         position="top-right"
-        autoClose={3500}
-        hideProgressBar={false}
+        autoClose={3000}
         newestOnTop
-        closeOnClick
-        pauseOnFocusLoss
-        draggable
         pauseOnHover
         theme="light"
       />
 
+      {/* Lazy Loading Wrapper */}
       <Suspense fallback={<Loading />}>
         <Routes>
-          {/* Public */}
-          <Route path="/"              element={<Home />} />
+          {/* ── Public Routes ── */}
+          <Route path="/" element={<Home />} />
           <Route path="/apply-job/:id" element={<ApplyJob />} />
 
-          {/* User-protected */}
+          {/* ── User Routes ── */}
           <Route
             path="/applications"
-            element={<UserRoute><Applications /></UserRoute>}
+            element={
+              <ProtectedUserRoute>
+                <Applications />
+              </ProtectedUserRoute>
+            }
           />
+
           <Route
             path="/profile"
-            element={<UserRoute><UserProfile /></UserRoute>}
+            element={
+              <ProtectedUserRoute>
+                <UserProfilePage />
+              </ProtectedUserRoute>
+            }
           />
 
-          {/* Recruiter dashboard (company-protected) */}
+          {/* ── Company / Recruiter Routes ── */}
           <Route
             path="/dashboard"
-            element={<CompanyRoute><Dashboard /></CompanyRoute>}
+            element={
+              <ProtectedCompanyRoute>
+                <Dashboard />
+              </ProtectedCompanyRoute>
+            }
           >
-            <Route index                   element={<Navigate to="manage-jobs" replace />} />
-            <Route path="add-job"          element={<AddJob />} />
-            <Route path="manage-jobs"      element={<ManageJobs />} />
+            {/* Default redirect */}
+            <Route index element={<Navigate to="manage-jobs" replace />} />
+
+            {/* Nested routes */}
+            <Route path="add-job" element={<AddJob />} />
+            <Route path="manage-jobs" element={<ManageJobs />} />
             <Route path="view-applications" element={<ViewApplications />} />
-            <Route path="reports"          element={<Reports />} />
+            <Route path="reports" element={<Reports />} />
           </Route>
 
-          {/* 404 */}
+          <Route
+            path="/company-profile"
+            element={
+              <ProtectedCompanyRoute>
+                <CompanyProfilePage />
+              </ProtectedCompanyRoute>
+            }
+          />
+
+          {/* ── Fallback (404) ── */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
