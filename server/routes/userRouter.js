@@ -7,7 +7,6 @@ import {
   registerUser,
   updateUserResume,
   getUserProfileCompleteness,
-  updateUserProfile,
   authRateLimit,
 } from "../controllers/userController.js";
 import upload, { handleUploadError } from "../config/multer.js";
@@ -45,14 +44,6 @@ userRouter.post("/apply", protectedRouteRateLimit, protectUser, validateRequest(
 // @access  Private
 userRouter.get("/applications", protectedRouteRateLimit, protectUser, getUserJobApplications);
 userRouter.get("/profile-completeness", protectedRouteRateLimit, protectUser, getUserProfileCompleteness);
-userRouter.post(
-  "/update-profile",
-  protectedRouteRateLimit,
-  protectUser,
-  upload.single("image"),
-  handleUploadError,
-  updateUserProfile
-);
 
 // @route   POST /update-resume
 // @desc    Update user's resume (uploaded via multipart/form-data)
