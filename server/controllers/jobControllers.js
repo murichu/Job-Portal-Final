@@ -19,13 +19,10 @@ export const getJobs = async (req, res) => {
       })
       .sort({ createdAt: -1 }); // Sort jobs by most recent
 
-    // Return the list of jobs as JSON
     res.json({ success: true, jobs });
   } catch (error) {
-    // Log any unexpected server error to the console
     console.error("getJobs error:", error);
 
-    // Send back a 500 Internal Server Error response
     return res.status(500).json({
       success: false,
       message: "Server error.",
@@ -38,11 +35,10 @@ export const getJobById = async (req, res) => {
   try {
     const { id } = req.params; // Extract job ID from request parameters
 
-    // Validate job ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid job ID format" 
+      return res.status(400).json({
+        success: false,
+        message: "Invalid job ID format",
       });
     }
 
@@ -57,18 +53,14 @@ export const getJobById = async (req, res) => {
       select: "-password",
     });
 
-    // If job not found, return a not-found response
-    if (!job) {
+    if (!job || !job.visible || new Date(job.deadline) < new Date()) {
       return res.status(404).json({ success: false, message: "Job not found" });
     }
 
-    // Return the found job as JSON
     res.json({ success: true, job });
   } catch (error) {
-    // Log the error for debugging
     console.error("getJobById error:", error);
 
-    // Return a generic server error response
     return res.status(500).json({
       success: false,
       message: "Server error.",
