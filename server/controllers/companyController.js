@@ -522,7 +522,9 @@ export const getCompanyPostedJobs = async (req, res) => {
     }
 
     // Fetch all jobs posted by this company, sorted by newest first
-    const jobs = await Job.find({ companyId, isDeleted: { $ne: true } }).sort({ createdAt: -1 }).lean();
+    const jobs = await Job.find({ companyId, isDeleted: { $ne: true } })
+      .sort({ createdAt: -1 })
+      .lean();
 
     // Adding number of applicants for each job
     const jobsData = await Promise.all(
@@ -538,7 +540,14 @@ export const getCompanyPostedJobs = async (req, res) => {
         const isExpired = status === "expired";
         const canRepost = isExpired && shortlistedCount === 0;
 
-        return { ...job, jobStatus: status, applicants, shortlistedCount, isExpired, canRepost };
+        return {
+          ...job,
+          jobStatus: status,
+          applicants,
+          shortlistedCount,
+          isExpired,
+          canRepost,
+        };
       })
     );
 
@@ -962,10 +971,16 @@ export const moderateJobApproval = async (req, res) => {
   try {
     const { id, decision, note = "" } = req.body;
     const companyId = req.company._id;
-    const job = await Job.findOne({ _id: id, companyId, isDeleted: { $ne: true } });
+    const job = await Job.findOne({
+      _id: id,
+      companyId,
+      isDeleted: { $ne: true },
+    });
 
     if (!job) {
-      return res.status(404).json({ success: false, message: "Job not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Job not found." });
     }
 
     job.approvalStatus = decision;
@@ -973,7 +988,8 @@ export const moderateJobApproval = async (req, res) => {
 
     if (decision === "approved") {
       job.approvedAt = new Date();
-      job.jobStatus = new Date(job.deadline) < new Date() ? "expired" : "active";
+      job.jobStatus =
+        new Date(job.deadline) < new Date() ? "expired" : "active";
       job.visible = job.jobStatus === "active";
     } else {
       job.jobStatus = "draft";
@@ -981,7 +997,11 @@ export const moderateJobApproval = async (req, res) => {
     }
 
     await job.save();
-    return res.json({ success: true, message: `Job ${decision} successfully.`, job });
+    return res.json({
+      success: true,
+      message: `Job ${decision} successfully.`,
+      job,
+    });
   } catch (error) {
     console.error("moderateJobApproval error:", error);
     return res.status(500).json({ success: false, message: "Server error." });
@@ -993,12 +1013,23 @@ export const softDeleteJob = async (req, res) => {
     const { id } = req.body;
     const companyId = req.company._id;
 
-    const job = await Job.findOne({ _id: id, companyId, isDeleted: { $ne: true } });
+    const job = await Job.findOne({
+      _id: id,
+      companyId,
+      isDeleted: { $ne: true },
+    });
+
     if (!job) {
-      return res.status(404).json({ success: false, message: "Job not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Job not found.",
+      });
     }
 
-    const applicationsCount = await JobApplication.countDocuments({ jobId: job._id });
+    const applicationsCount = await JobApplication.countDocuments({
+      jobId: job._id,
+    });
+
     if (applicationsCount > 0) {
       return res.status(400).json({
         success: false,
@@ -1006,22 +1037,36 @@ export const softDeleteJob = async (req, res) => {
       });
     }
 
-    job.isDeleted = true;
-    job.deletedAt = new Date();
-    job.visible = false;
-    job.jobStatus = "expired";
-    await job.save();
+    await Job.updateOne(
+      { _id: id, companyId },
+      {
+        $set: {
+          isDeleted: true,
+          deletedAt: new Date(),
+          visible: false,
+          jobStatus: "expired",
+        },
+      }
+    );
 
-    return res.json({ success: true, message: "Job deleted successfully." });
+    return res.json({
+      success: true,
+      message: "Job deleted successfully.",
+    });
   } catch (error) {
     console.error("softDeleteJob error:", error);
-    return res.status(500).json({ success: false, message: "Server error." });
+    return res.status(500).json({
+      success: false,
+      message: "Server error.",
+    });
   }
 };
 
 const buildCompanyReport = async (companyId) => {
   const [jobs, applications] = await Promise.all([
-    Job.find({ companyId, isDeleted: { $ne: true } }).sort({ createdAt: -1 }).lean(),
+    Job.find({ companyId, isDeleted: { $ne: true } })
+      .sort({ createdAt: -1 })
+      .lean(),
     JobApplication.find({ companyId })
       .populate("jobId", "title")
       .populate("userId", "name email")
