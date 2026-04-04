@@ -7,6 +7,13 @@ import Job from "../models/Job.js";
 import JobApplication from "../models/JobApplication.js";
 import mongoose from "mongoose";
 
+const deriveJobStatus = (job) => {
+  if (job?.isDeleted) return "expired";
+  if (job?.jobStatus === "draft") return "draft";
+  if (new Date(job?.deadline) < new Date()) return "expired";
+  return "active";
+};
+
 // Register a company
 // Handles creating a new company account with provided details such as name, email, password, etc.
 export const registerCompany = async (req, res) => {
@@ -235,16 +242,62 @@ export const getCompanyData = async (req, res) => {
 // Post a new job
 // Allows a company to create and post a new job listing with job description, requirements, etc.
 export const postJob = async (req, res) => {
-  // Destructure job details from request body
-  const { title, description, location, salary, level, category, deadline } = req.body;
+  const {
+    title,
+    description,
+    location,
+    level,
+    category,
+    deadline,
+    salaryMode = "fixed",
+    salaryAmount,
+    salaryMin,
+    salaryMax,
+    salaryVisible = true,
+    isNegotiable = false,
+    saveAsDraft = false,
+  } = req.body;
 
-  // Check if any required field is missing
-  if (!title || !description || !location || !salary || !level || !category || !deadline) {
+  if (!title || !description || !location || !level || !category || !deadline) {
     return res.status(400).json({
       success: false,
       message:
-        "All fields (title, description, location, salary, level, category, deadline) are required.",
+        "All required fields (title, description, location, level, category, deadline) must be provided.",
     });
+  }
+
+  if (!["fixed", "range"].includes(salaryMode)) {
+    return res.status(400).json({ success: false, message: "Invalid salary mode." });
+  }
+
+  let normalizedSalaryAmount = null;
+  let normalizedSalaryMin = null;
+  let normalizedSalaryMax = null;
+  let legacySalary = 0;
+
+  if (!isNegotiable) {
+    if (salaryMode === "fixed") {
+      normalizedSalaryAmount = Number(salaryAmount);
+      if (!Number.isFinite(normalizedSalaryAmount) || normalizedSalaryAmount <= 0) {
+        return res.status(400).json({ success: false, message: "Fixed monthly salary must be greater than zero." });
+      }
+      legacySalary = normalizedSalaryAmount;
+    }
+
+    if (salaryMode === "range") {
+      normalizedSalaryMin = Number(salaryMin);
+      normalizedSalaryMax = Number(salaryMax);
+      if (
+        !Number.isFinite(normalizedSalaryMin) ||
+        !Number.isFinite(normalizedSalaryMax) ||
+        normalizedSalaryMin <= 0 ||
+        normalizedSalaryMax <= 0 ||
+        normalizedSalaryMax < normalizedSalaryMin
+      ) {
+        return res.status(400).json({ success: false, message: "Salary range is invalid." });
+      }
+      legacySalary = normalizedSalaryMax;
+    }
   }
 
   const parsedDeadline = new Date(deadline);
@@ -255,28 +308,64 @@ export const postJob = async (req, res) => {
     });
   }
 
-  // Get the company ID from the authenticated request (set in middleware)
   const companyId = req.company._id;
 
   try {
-    // Create a new Job instance
+    const normalizedTitle = title.trim().toLowerCase();
+    const possibleDuplicates = await Job.find({
+      companyId,
+      isDeleted: false,
+      location,
+      category,
+      level,
+    })
+      .select("_id title")
+      .lean();
+
+    const duplicateJob = possibleDuplicates.find(
+      (job) => (job.title || "").trim().toLowerCase() === normalizedTitle
+    );
+
+    if (duplicateJob) {
+      return res.status(409).json({
+        success: false,
+        message: "Potential duplicate job detected. A similar listing already exists.",
+        duplicateJobId: duplicateJob._id,
+      });
+    }
+
     const newJob = await Job({
       title,
       description,
       location,
-      salary,
+      salary: legacySalary,
+      salaryMode,
+      salaryAmount: normalizedSalaryAmount,
+      salaryMin: normalizedSalaryMin,
+      salaryMax: normalizedSalaryMax,
+      salaryVisible,
+      isNegotiable,
+      jobStatus: "draft",
+      approvalStatus: "pending",
+      submittedForApprovalAt: saveAsDraft ? null : new Date(),
+      approvedAt: null,
       level,
       category,
       companyId,
+      visible: false,
       date: Date.now(),
       deadline: parsedDeadline,
     });
 
-    // Save the job to the database
     await newJob.save();
 
-    // Respond with success
-    res.json({ success: true, newJob });
+    res.json({
+      success: true,
+      message: saveAsDraft
+        ? "Job saved as draft. Submit for approval when ready."
+        : "Job submitted for approval successfully.",
+      newJob,
+    });
   } catch (error) {
     console.error("postJob error:", error);
     return res.status(500).json({
@@ -340,7 +429,7 @@ export const getCompanyPostedJobs = async (req, res) => {
     }
 
     // Fetch all jobs posted by this company, sorted by newest first
-    const jobs = await Job.find({ companyId }).sort({ createdAt: -1 }).lean();
+    const jobs = await Job.find({ companyId, isDeleted: { $ne: true } }).sort({ createdAt: -1 }).lean();
 
     // Adding number of applicants for each job
     const jobsData = await Promise.all(
@@ -352,11 +441,11 @@ export const getCompanyPostedJobs = async (req, res) => {
           jobId: job._id,
           status: "Shortlisted",
         });
-        const isExpired = new Date(job.deadline) < new Date();
+        const status = deriveJobStatus(job);
+        const isExpired = status === "expired";
         const canRepost = isExpired && shortlistedCount === 0;
 
-        // Spread job directly since .lean() returns plain objects
-        return { ...job, applicants, shortlistedCount, isExpired, canRepost };
+        return { ...job, jobStatus: status, applicants, shortlistedCount, isExpired, canRepost };
       })
     );
 
@@ -459,7 +548,7 @@ export const repostJob = async (req, res) => {
       return res.status(400).json({ success: false, message: "Valid job ID is required." });
     }
 
-    const originalJob = await Job.findById(id);
+    const originalJob = await Job.findOne({ _id: id, isDeleted: { $ne: true } });
     if (!originalJob) {
       return res.status(404).json({ success: false, message: "Job not found." });
     }
@@ -499,6 +588,16 @@ export const repostJob = async (req, res) => {
       category: originalJob.category,
       level: originalJob.level,
       salary: originalJob.salary,
+      salaryMode: originalJob.salaryMode || "fixed",
+      salaryAmount: originalJob.salaryAmount ?? null,
+      salaryMin: originalJob.salaryMin ?? null,
+      salaryMax: originalJob.salaryMax ?? null,
+      salaryVisible: typeof originalJob.salaryVisible === "boolean" ? originalJob.salaryVisible : true,
+      isNegotiable: originalJob.isNegotiable || false,
+      jobStatus: "active",
+      approvalStatus: "approved",
+      submittedForApprovalAt: new Date(),
+      approvedAt: new Date(),
       companyId: originalJob.companyId,
       visible: true,
       date: new Date(),
@@ -748,7 +847,7 @@ export const ChangeJobVisibility = async (req, res) => {
     const companyId = req.company._id;
 
     // Find the job by its ID
-    const job = await Job.findById(id);
+    const job = await Job.findOne({ _id: id, isDeleted: { $ne: true } });
 
     // If job doesn't exist, return a 404 error
     if (!job) {
@@ -763,6 +862,13 @@ export const ChangeJobVisibility = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to modify this job.",
+      });
+    }
+
+    if (job.approvalStatus !== "approved") {
+      return res.status(400).json({
+        success: false,
+        message: "Only approved jobs can be made visible.",
       });
     }
 
@@ -802,9 +908,115 @@ export const ChangeJobVisibility = async (req, res) => {
   }
 };
 
+export const submitJobForApproval = async (req, res) => {
+  try {
+    const { id } = req.body;
+    const companyId = req.company._id;
+
+    const job = await Job.findOne({ _id: id, companyId, isDeleted: { $ne: true } });
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found." });
+    }
+
+    if (job.jobStatus !== "draft") {
+      return res.status(400).json({ success: false, message: "Only draft jobs can be submitted for approval." });
+    }
+
+    const updatedJob = await Job.findByIdAndUpdate(
+      job._id,
+      {
+        $set: {
+          approvalStatus: "pending",
+          submittedForApprovalAt: new Date(),
+          visible: false,
+          approvalNote: "",
+        },
+      },
+      { new: true }
+    );
+
+    return res.json({
+      success: true,
+      message: "Job submitted for approval successfully.",
+      job: updatedJob,
+    });
+  } catch (error) {
+    console.error("submitJobForApproval error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const moderateJobApproval = async (req, res) => {
+  try {
+    const { id, decision, note = "" } = req.body;
+    const companyId = req.company._id;
+    const job = await Job.findOne({ _id: id, companyId, isDeleted: { $ne: true } });
+
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found." });
+    }
+
+    const update = {
+      approvalStatus: decision,
+      approvalNote: note,
+    };
+
+    if (decision === "approved") {
+      const nextStatus = new Date(job.deadline) < new Date() ? "expired" : "active";
+      update.approvedAt = new Date();
+      update.jobStatus = nextStatus;
+      update.visible = nextStatus === "active";
+      update.submittedForApprovalAt = job.submittedForApprovalAt || new Date();
+    } else {
+      update.jobStatus = "draft";
+      update.visible = false;
+    }
+
+    const updatedJob = await Job.findByIdAndUpdate(job._id, { $set: update }, { new: true });
+    return res.json({ success: true, message: `Job ${decision} successfully.`, job: updatedJob });
+  } catch (error) {
+    console.error("moderateJobApproval error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const softDeleteJob = async (req, res) => {
+  try {
+    const { id } = req.body;
+    const companyId = req.company._id;
+
+    const job = await Job.findOne({ _id: id, companyId, isDeleted: { $ne: true } });
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found." });
+    }
+
+    const applicationsCount = await JobApplication.countDocuments({ jobId: job._id });
+    if (applicationsCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete a job that already has applications.",
+      });
+    }
+
+    await Job.findByIdAndUpdate(job._id, {
+      $set: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        visible: false,
+        jobStatus: "expired",
+      },
+    });
+
+    return res.json({ success: true, message: "Job deleted successfully." });
+  } catch (error) {
+    console.error("softDeleteJob error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
 const buildCompanyReport = async (companyId) => {
   const [jobs, applications] = await Promise.all([
-    Job.find({ companyId }).sort({ createdAt: -1 }).lean(),
+    Job.find({ companyId, isDeleted: { $ne: true } }).sort({ createdAt: -1 }).lean(),
     JobApplication.find({ companyId })
       .populate("jobId", "title")
       .populate("userId", "name email")
@@ -869,10 +1081,10 @@ export const downloadCompanyReportExcel = async (req, res) => {
     );
     csvLines.push("");
     csvLines.push("Jobs");
-    csvLines.push("Title,Category,Level,Location,Salary,Visible,Posted Date");
+    csvLines.push("Title,Category,Level,Location,Salary Mode,Salary,Visible,Posted Date");
     report.jobs.forEach((job) => {
       csvLines.push(
-        `"${job.title}","${job.category}","${job.level}","${job.location}",${job.salary},${
+        `"${job.title}","${job.category}","${job.level}","${job.location}","${job.salaryMode || 'fixed'}",${job.salary || 0},${
           job.visible ? "Yes" : "No"
         },"${new Date(job.date).toLocaleDateString()}"`
       );

@@ -4,7 +4,6 @@ import { AppContext } from "../context/AppContext";
 import Loading from "../components/Loading";
 import Navbar from "../components/Navbar";
 import { assets } from "../assets/assets";
-import kconvert from "k-convert";
 import moment from "moment";
 import JobCard from "../components/JobCard";
 import Footer from "../components/Footer";
@@ -89,6 +88,26 @@ const ApplyJob = () => {
     }
   };
 
+  const formatSalary = (job) => {
+    if (!job?.salaryVisible) return "Salary not disclosed";
+    if (job?.isNegotiable) return "Negotiable";
+
+    const formatKES = (amount) =>
+      new Intl.NumberFormat("en-KE", {
+        style: "currency",
+        currency: "KES",
+        maximumFractionDigits: 0,
+      }).format(Number(amount || 0));
+
+    if (job?.salaryMode === "range" && job?.salaryMin && job?.salaryMax) {
+      return `${formatKES(job.salaryMin)} - ${formatKES(job.salaryMax)}`;
+    }
+
+    const fixedAmount = job?.salaryAmount || job?.salary;
+    if (fixedAmount) return `${formatKES(fixedAmount)} / month`;
+    return "Salary not specified";
+  };
+
   // Jobs from the same company (excluding current)
   const relatedJobs = jobs.filter(
     (j) => j._id !== id && j.companyId?._id === jobData?.companyId?._id
@@ -149,11 +168,15 @@ const ApplyJob = () => {
                   </span>
                   <span className="flex items-center gap-1.5">
                     <img src={assets.money_icon} alt="" className="w-3.5 h-3.5" />
-                    {kconvert.convertTo(jobData.salary)} / yr
+                    {formatSalary(jobData)}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <img src={assets.suitcase_icon} alt="" className="w-3.5 h-3.5" />
                     {jobData.category}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <img src={assets.suitcase_icon} alt="" className="w-3.5 h-3.5" />
+                    Deadline: {moment(jobData.deadline).format("MMM D, YYYY")}
                   </span>
                 </div>
               </div>
