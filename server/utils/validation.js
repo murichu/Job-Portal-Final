@@ -30,7 +30,7 @@ export const companyRegistrationSchema = Joi.object({
 // Job posting validation schema
 export const jobPostingSchema = Joi.object({
   title: Joi.string().min(3).max(100).trim().required(),
-  description: Joi.string().min(50).required(),
+  description: Joi.string().min(0).required(),
   location: Joi.string().min(2).max(50).required(),
   category: Joi.string().valid('Programming', 'Data Science', 'Designing', 'Networking', 'Management', 'Marketing', 'Cybersecurity').required(),
   level: Joi.string().valid('Beginner level', 'Intermediate level', 'Senior level').required(),
