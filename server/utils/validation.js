@@ -37,52 +37,35 @@ export const jobPostingSchema = Joi.object({
   salaryMode: Joi.string().valid('fixed', 'range').default('fixed'),
   salaryVisible: Joi.boolean().default(true),
   isNegotiable: Joi.boolean().default(false),
-  saveAsDraft: Joi.boolean().optional(),
   salary: Joi.number().min(0).max(1000000000).optional(),
-  salaryAmount: Joi.when('saveAsDraft', {
+  salaryAmount: Joi.when('isNegotiable', {
     is: true,
-    then: Joi.number().optional().allow(null),
-    otherwise: Joi.when('isNegotiable', {
-      is: true,
-      then: Joi.number().min(0).max(1000000000).optional().allow(null),
-      otherwise: Joi.when('salaryMode', {
-        is: 'fixed',
-        then: Joi.number().min(1).max(1000000000).required(),
-        otherwise: Joi.number().optional().allow(null),
-      }),
+    then: Joi.number().min(0).max(1000000000).optional().allow(null),
+    otherwise: Joi.when('salaryMode', {
+      is: 'fixed',
+      then: Joi.number().min(1).max(1000000000).required(),
+      otherwise: Joi.number().optional().allow(null),
     }),
   }),
-  salaryMin: Joi.when('saveAsDraft', {
+  salaryMin: Joi.when('isNegotiable', {
     is: true,
-    then: Joi.number().optional().allow(null),
-    otherwise: Joi.when('isNegotiable', {
-      is: true,
-      then: Joi.number().min(0).max(1000000000).optional().allow(null),
-      otherwise: Joi.when('salaryMode', {
-        is: 'range',
-        then: Joi.number().min(1).max(1000000000).required(),
-        otherwise: Joi.number().optional().allow(null),
-      }),
+    then: Joi.number().min(0).max(1000000000).optional().allow(null),
+    otherwise: Joi.when('salaryMode', {
+      is: 'range',
+      then: Joi.number().min(1).max(1000000000).required(),
+      otherwise: Joi.number().optional().allow(null),
     }),
   }),
-  salaryMax: Joi.when('saveAsDraft', {
+  salaryMax: Joi.when('isNegotiable', {
     is: true,
-    then: Joi.number().optional().allow(null),
-    otherwise: Joi.when('isNegotiable', {
-      is: true,
-      then: Joi.number().min(0).max(1000000000).optional().allow(null),
-      otherwise: Joi.when('salaryMode', {
-        is: 'range',
-        then: Joi.number().min(Joi.ref('salaryMin')).max(1000000000).required(),
-        otherwise: Joi.number().optional().allow(null),
-      }),
+    then: Joi.number().min(0).max(1000000000).optional().allow(null),
+    otherwise: Joi.when('salaryMode', {
+      is: 'range',
+      then: Joi.number().min(Joi.ref('salaryMin')).max(1000000000).required(),
+      otherwise: Joi.number().optional().allow(null),
     }),
   }),
-  deadline: Joi.when('saveAsDraft', {
-    is: true,
-    then: Joi.date().iso().optional().allow(null),
-    otherwise: Joi.date().iso().greater('now').required(),
-  }),
+  deadline: Joi.date().iso().greater('now').required()
 });
 
 // Job application validation schema

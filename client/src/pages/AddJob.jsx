@@ -107,7 +107,7 @@ const AddJob = () => {
     if (!category) return toast.error("Please select a category");
     if (!level) return toast.error("Please select a level");
 
-    if (!isDraft && !isNegotiable) {
+    if (!isNegotiable) {
       if (salaryMode === "fixed") {
         if (!salaryAmount || Number(salaryAmount) <= 0) {
           return toast.error("Please enter a valid fixed monthly salary");
@@ -122,7 +122,7 @@ const AddJob = () => {
       }
     }
 
-    if (!isDraft && !deadline) return toast.error("Please select a deadline");
+    if (!deadline) return toast.error("Please select a deadline");
 
     const description = quillRef.current?.root.innerHTML.trim();
     if (!isDraft && (!description || description === "<p><br></p>")) {
@@ -134,7 +134,7 @@ const AddJob = () => {
 
       const payload = {
         title,
-        description: description && description !== "<p><br></p>" ? description : "<p>Draft</p>",
+        description,
         location,
         category,
         level,
@@ -142,8 +142,7 @@ const AddJob = () => {
         salaryVisible,
         isNegotiable,
         salary: getLegacySalary(),
-        saveAsDraft: isDraft,
-        ...(deadline ? { deadline: new Date(deadline).toISOString() } : {}),
+        deadline: new Date(deadline).toISOString(),
       };
 
       if (!isNegotiable && salaryMode === "fixed") {
@@ -411,7 +410,7 @@ const AddJob = () => {
           </div>
         </div>
 
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-3">
           <button
             type="submit"
             disabled={loading}

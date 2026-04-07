@@ -23,7 +23,6 @@ import {
   downloadCompanyReportPDF,
   moderateJobApproval,
   softDeleteJob,
-  submitJobForApproval,
 } from "../controllers/companyController.js";
 import upload, { handleUploadError } from "../config/multer.js";
 import { protectCompany } from "../middleware/AuthMiddleware.js";
@@ -106,7 +105,6 @@ companyRouter.post("/change-visibility", protectCompany, ChangeJobVisibility);
 companyRouter.post("/repost-job", protectCompany, repostJob);
 companyRouter.post("/moderate-job", protectCompany, validateRequest(jobModerationSchema), moderateJobApproval);
 companyRouter.post("/delete-job", protectCompany, validateRequest(jobDeleteSchema), softDeleteJob);
-companyRouter.post("/submit-job-approval", protectCompany, validateRequest(jobDeleteSchema), submitJobForApproval);
 
 
 export default companyRouter;

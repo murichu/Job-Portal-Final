@@ -94,25 +94,6 @@ const ManageJobs = () => {
     }
   };
 
-
-  const submitForApproval = async (jobId) => {
-    if (updatingId) return;
-    setUpdatingId(jobId);
-    try {
-      const { data } = await api.post(`${backendUrl}/api/company/submit-job-approval`, { id: jobId });
-      if (data.success) {
-        toast.success(data.message);
-        fetchCompanyJobs();
-      } else {
-        toast.error(data.message || "Failed to submit for approval");
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to submit for approval");
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
   const softDeleteJob = async (jobId) => {
     if (updatingId) return;
     setUpdatingId(jobId);
@@ -197,12 +178,9 @@ const ManageJobs = () => {
                     </td>
                     <td className="px-4 py-4 text-center">
                       {job.approvalStatus === "pending" ? (
-                        <div className="flex flex-col items-center justify-center gap-1">
-                          <span className="text-[11px] text-amber-700">{job.submittedForApprovalAt ? "Pending review" : "Draft - not submitted"}</span>
-                          {job.submittedForApprovalAt && (<div className="flex items-center justify-center gap-1">
-                            <button onClick={() => moderateJob(job._id, "approved")} className="text-xs px-2 py-1 rounded border border-green-200 text-green-700">Approve</button>
-                            <button onClick={() => moderateJob(job._id, "rejected")} className="text-xs px-2 py-1 rounded border border-red-200 text-red-700">Reject</button>
-                          </div>)}
+                        <div className="flex items-center justify-center gap-1">
+                          <button onClick={() => moderateJob(job._id, "approved")} className="text-xs px-2 py-1 rounded border border-green-200 text-green-700">Approve</button>
+                          <button onClick={() => moderateJob(job._id, "rejected")} className="text-xs px-2 py-1 rounded border border-red-200 text-red-700">Reject</button>
                         </div>
                       ) : (
                         <span className={`text-xs px-2 py-1 rounded-full ${job.approvalStatus === "approved" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
@@ -225,23 +203,13 @@ const ManageJobs = () => {
                     </td>
                     <td className="px-4 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        {job.jobStatus === "draft" && !job.submittedForApprovalAt ? (
-                          <button
-                            disabled={updatingId === job._id}
-                            onClick={() => submitForApproval(job._id)}
-                            className="text-xs px-2.5 py-1 rounded-lg border border-indigo-200 text-indigo-700 disabled:opacity-40"
-                          >
-                            Submit
-                          </button>
-                        ) : (
-                          <button
-                            disabled={!job.canRepost || updatingId === job._id}
-                            onClick={() => repostJob(job._id)}
-                            className="text-xs px-2.5 py-1 rounded-lg border border-blue-200 text-blue-700 disabled:opacity-40"
-                          >
-                            Repost
-                          </button>
-                        )}
+                        <button
+                          disabled={!job.canRepost || updatingId === job._id}
+                          onClick={() => repostJob(job._id)}
+                          className="text-xs px-2.5 py-1 rounded-lg border border-blue-200 text-blue-700 disabled:opacity-40"
+                        >
+                          Repost
+                        </button>
                         <button
                           disabled={updatingId === job._id}
                           onClick={() => softDeleteJob(job._id)}
