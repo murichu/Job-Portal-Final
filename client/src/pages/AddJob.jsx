@@ -100,6 +100,8 @@ const AddJob = () => {
   const onSubmitHandler = async (e) => {
     e.preventDefault();
 
+    const isDraft = submitModeRef.current === "draft";
+
     if (!title.trim()) return toast.error("Job title is required");
     if (!location) return toast.error("Please select a location");
     if (!category) return toast.error("Please select a category");
@@ -123,7 +125,7 @@ const AddJob = () => {
     if (!deadline) return toast.error("Please select a deadline");
 
     const description = quillRef.current?.root.innerHTML.trim();
-    if (!description || description === "<p><br></p>") {
+    if (!isDraft && (!description || description === "<p><br></p>")) {
       return toast.error("Job description cannot be empty");
     }
 
