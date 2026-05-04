@@ -9,15 +9,29 @@ const mpesaPaymentSchema = new mongoose.Schema(
     phone: { type: String, required: true, index: true },
     amount: { type: Number, required: true },
     merchantRequestId: { type: String, default: "", index: true },
-    checkoutRequestId: { type: String, default: "", index: true },
-    mpesaReceiptNumber: { type: String, default: "", index: true },
-    status: { type: String, enum: ["pending", "paid", "failed", "cancelled"], default: "pending", index: true },
+    checkoutRequestId: { type: String, default: "", unique: true, sparse: true, index: true },
+    mpesaReceiptNumber: { type: String, default: "", unique: true, sparse: true, index: true },
+    status: {
+      type: String,
+      enum: ["pending", "paid", "failed", "cancelled", "flagged", "retrying"],
+      default: "pending",
+      index: true,
+    },
+    retryCount: { type: Number, default: 0 },
+    maxRetries: { type: Number, default: 3 },
+    lastRetryAt: { type: Date, default: null },
+    suspicious: { type: Boolean, default: false, index: true },
+    fraudReason: { type: String, default: "" },
     resultCode: { type: Number, default: null },
     resultDesc: { type: String, default: "" },
+    callbackIp: { type: String, default: "" },
     rawCallback: { type: Object, default: null },
   },
   { timestamps: true }
 );
+
+mpesaPaymentSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
+mpesaPaymentSchema.index({ suspicious: 1, createdAt: -1 });
 
 const MpesaPayment = mongoose.models.MpesaPayment || mongoose.model("MpesaPayment", mpesaPaymentSchema);
 export default MpesaPayment;
