@@ -1,6 +1,7 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { randomUUID } from "crypto";
 
 // Detect environment (serverless vs local)
 // AWS Lambda & Vercel usually only allow writes to /tmp
@@ -15,37 +16,38 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+const allowedExtensions = [".jpg", ".jpeg", ".png", ".pdf"];
+const allowedMimeTypes = [
+  "image/jpeg",
+  "image/png",
+  "image/jpg",
+  "application/pdf",
+];
+
 // Configure disk storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-    const filePath = path.join(uploadsDir, safeName);
+    const fileExtension = path.extname(file.originalname).toLowerCase();
 
-    // Prevent overwriting existing files
-    if (fs.existsSync(filePath)) {
-      return cb(new Error("A file with this name already exists."), null);
+    if (!allowedExtensions.includes(fileExtension)) {
+      return cb(new Error("Invalid file extension."), null);
     }
 
-    cb(null, safeName);
+    // Use a generated filename to avoid collisions and prevent exposing user file names.
+    cb(null, `${randomUUID()}${fileExtension}`);
   },
 });
 
 // File type filter
 const fileFilter = (req, file, cb) => {
-  const allowedMimeTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/jpg",
-    "application/pdf",
-  ];
   const fileExtension = path.extname(file.originalname).toLowerCase();
 
   if (
     allowedMimeTypes.includes(file.mimetype) &&
-    [".jpg", ".jpeg", ".png", ".pdf"].includes(fileExtension)
+    allowedExtensions.includes(fileExtension)
   ) {
     cb(null, true);
   } else {
