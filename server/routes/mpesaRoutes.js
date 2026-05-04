@@ -32,38 +32,21 @@ router.post("/stk-push", protectUser, async (req, res) => {
   });
 });
 
-// Poll payment status by CheckoutRequestID
 router.get("/status/:checkoutRequestId", protectUser, async (req, res) => {
-  const payment = await MpesaPayment.findOne({
-    checkoutRequestId: req.params.checkoutRequestId,
-    userId: req.user._id,
-  }).select("status amount phone resultCode resultDesc mpesaReceiptNumber suspicious fraudReason createdAt updatedAt checkoutRequestId");
+  const payment = await MpesaPayment.findOne({ checkoutRequestId: req.params.checkoutRequestId, userId: req.user._id })
+    .select("status amount phone resultCode resultDesc mpesaReceiptNumber suspicious fraudReason createdAt updatedAt checkoutRequestId");
 
-  if (!payment) {
-    return res.status(404).json({ success: false, message: "Payment not found" });
-  }
+  if (!payment) return res.status(404).json({ success: false, message: "Payment not found" });
 
-  const isStillProcessing = payment.status === "pending" || payment.status === "retrying";
+  const processing = payment.status === "pending" || payment.status === "retrying";
 
-  res.json({
-    success: true,
-    processing: isStillProcessing,
-    payment,
-    message: isStillProcessing
-      ? "Payment is still processing. Please complete the M-Pesa prompt on your phone."
-      : payment.status === "paid"
-        ? "Payment completed successfully."
-        : payment.status === "flagged"
-          ? "Payment is under review."
-          : "Payment was not completed.",
-  });
+  res.json({ success: true, processing, payment });
 });
 
 router.post("/callback", requireMpesaCallbackAllowed, async (req, res) => {
   if (!req.body.Body?.stkCallback) return res.sendStatus(400);
 
   const data = req.body.Body.stkCallback;
-
   const payment = await MpesaPayment.findOne({ checkoutRequestId: data.CheckoutRequestID });
   if (!payment) return res.sendStatus(404);
 
@@ -95,11 +78,15 @@ router.post("/callback", requireMpesaCallbackAllowed, async (req, res) => {
 
   await payment.save();
 
-  console.log("M-Pesa callback processed:", {
-    checkoutId: data.CheckoutRequestID,
-    status: payment.status,
-    suspicious: payment.suspicious,
-  });
+  if (global.io) {
+    global.io.emit("payment_update", {
+      provider: "mpesa",
+      checkoutRequestId: payment.checkoutRequestId,
+      status: payment.status,
+      suspicious: payment.suspicious,
+      message: payment.status === "paid" ? "Payment completed successfully." : payment.status === "failed" ? "Payment failed or was cancelled." : "Payment updated.",
+    });
+  }
 
   res.json({ ResultCode: 0, ResultDesc: "Accepted" });
 });
