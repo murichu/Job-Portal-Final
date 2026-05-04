@@ -24,7 +24,39 @@ router.post("/stk-push", protectUser, async (req, res) => {
     checkoutRequestId: response.CheckoutRequestID,
   });
 
-  res.json({ success: true, response });
+  res.json({
+    success: true,
+    message: "M-Pesa prompt sent. Payment is processing.",
+    checkoutRequestId: response.CheckoutRequestID,
+    response,
+  });
+});
+
+// Poll payment status by CheckoutRequestID
+router.get("/status/:checkoutRequestId", protectUser, async (req, res) => {
+  const payment = await MpesaPayment.findOne({
+    checkoutRequestId: req.params.checkoutRequestId,
+    userId: req.user._id,
+  }).select("status amount phone resultCode resultDesc mpesaReceiptNumber suspicious fraudReason createdAt updatedAt checkoutRequestId");
+
+  if (!payment) {
+    return res.status(404).json({ success: false, message: "Payment not found" });
+  }
+
+  const isStillProcessing = payment.status === "pending" || payment.status === "retrying";
+
+  res.json({
+    success: true,
+    processing: isStillProcessing,
+    payment,
+    message: isStillProcessing
+      ? "Payment is still processing. Please complete the M-Pesa prompt on your phone."
+      : payment.status === "paid"
+        ? "Payment completed successfully."
+        : payment.status === "flagged"
+          ? "Payment is under review."
+          : "Payment was not completed.",
+  });
 });
 
 router.post("/callback", requireMpesaCallbackAllowed, async (req, res) => {
@@ -43,7 +75,6 @@ router.post("/callback", requireMpesaCallbackAllowed, async (req, res) => {
   payment.resultDesc = data.ResultDesc;
   payment.rawCallback = data;
 
-  // Fraud detection
   await evaluateMpesaFraud(payment, data, ip);
 
   if (payment.status === "paid" && !payment.suspicious) {
