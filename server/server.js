@@ -22,6 +22,17 @@ import onboardingRoutes from "./routes/onboardingRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
 import paystackRoutes from "./routes/paystackRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
+import financeAdminRoutes from "./routes/financeAdminRoutes.js";
+import financeReports from "./routes/financeReports.js";
+import taxExportRoutes from "./routes/taxExportRoutes.js";
+import refundRoutes from "./routes/refundRoutes.js";
+import teamRoutes from "./routes/teamRoutes.js";
+import monitorRoutes from "./routes/monitorRoutes.js";
+import incidentRoutes from "./routes/incidentRoutes.js";
+import logRoutes from "./routes/logRoutes.js";
+import emailAnalyticsRoutes from "./routes/emailAnalyticsRoutes.js";
+import emailPreferenceRoutes from "./routes/emailPreferenceRoutes.js";
 
 dotenv.config();
 
@@ -60,6 +71,17 @@ app.use("/api/billing", billingRoutes);
 app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/super-admin", superAdminRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/admin/finance", financeAdminRoutes);
+app.use("/api/finance", financeReports);
+app.use("/api", taxExportRoutes);
+app.use("/api/refund", refundRoutes);
+app.use("/api/team", teamRoutes);
+app.use("/api/monitor", monitorRoutes);
+app.use("/api/incidents", incidentRoutes);
+app.use("/api/logs", logRoutes);
+app.use("/api/email-analytics", emailAnalyticsRoutes);
+app.use("/api/email", emailPreferenceRoutes);
 
 app.get("/", (req, res) => res.json({ success: true }));
 
