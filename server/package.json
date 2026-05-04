@@ -11,12 +11,14 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "seed:assets": "node scripts/seedFromAssets.js"
+    "seed:assets": "node scripts/seedFromAssets.js",
+    "worker:email": "node workers/emailWorker.js"
   },
   "dependencies": {
     "@sentry/node": "^8.48.0",
     "@sentry/profiling-node": "^8.48.0",
     "bcrypt": "^5.1.1",
+    "bullmq": "^5.34.2",
     "cloudinary": "^2.5.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -24,6 +26,7 @@
     "express": "^4.21.2",
     "express-rate-limit": "^8.0.1",
     "helmet": "^7.0.0",
+    "ioredis": "^5.4.2",
     "inngest": "^3.40.1",
     "joi": "^17.12.1",
     "jsonwebtoken": "^9.0.2",
