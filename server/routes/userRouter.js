@@ -10,62 +10,88 @@ import {
   authRateLimit,
 } from "../controllers/userController.js";
 import upload, { handleUploadError } from "../config/multer.js";
-import { protectUser, protectedRouteRateLimit, optionalAuth } from "../middleware/userAuth.js";
+import { protectUser, protectedRouteRateLimit } from "../middleware/userAuth.js";
 import { validateRequest } from "../middleware/validation.js";
 import { userRegistrationSchema, userLoginSchema, jobApplicationSchema } from "../utils/validation.js";
+import { createSignedFileToken, verifySignedFileToken } from "../utils/signedFileAccess.js";
 
 const userRouter = express.Router();
 
 // Register a user
 userRouter.post(
   "/register",
-  authRateLimit, // Apply rate limiting to registration
+  authRateLimit,
   upload.single("image"),
   validateRequest(userRegistrationSchema),
   handleUploadError,
   registerUser
 );
 
-// User login
+// Login
 userRouter.post("/login", authRateLimit, validateRequest(userLoginSchema), loginUser);
 
-// @route   GET /user
-// @desc    Get authenticated user's profile data
-// @access  Private
+// Profile
 userRouter.get("/user", protectedRouteRateLimit, protectUser, getUserData);
 
-// @route   POST /apply
-// @desc    Apply for a job
-// @access  Private
+// Applications
 userRouter.post("/apply", protectedRouteRateLimit, protectUser, validateRequest(jobApplicationSchema), applyForJob);
-
-// @route   GET /applications
-// @desc    Get all jobs the user has applied to
-// @access  Private
 userRouter.get("/applications", protectedRouteRateLimit, protectUser, getUserJobApplications);
 userRouter.get("/profile-completeness", protectedRouteRateLimit, protectUser, getUserProfileCompleteness);
 
-// @route   POST /update-resume
-// @desc    Update user's resume (uploaded via multipart/form-data)
-// @access  Private
+// Upload resume
 userRouter.post(
   "/update-resume",
   protectedRouteRateLimit,
   protectUser,
-  upload.single("resume"), // Multer middleware for file upload
-  handleUploadError, // Custom middleware to handle upload errors
-  updateUserResume // Controller to save resume info
+  upload.single("resume"),
+  handleUploadError,
+  updateUserResume
 );
 
-// @route   POST /logout
-// @desc    Logout user (client-side mainly, but can be used for cleanup)
-// @access  Private
+// 🔐 Generate signed resume access URL
+userRouter.get("/resume/signed-url", protectedRouteRateLimit, protectUser, (req, res) => {
+  try {
+    const resumeUrl = req.user?.resume;
+
+    if (!resumeUrl) {
+      return res.status(404).json({ success: false, message: "No resume found" });
+    }
+
+    const token = createSignedFileToken({
+      userId: req.userId,
+      fileUrl: resumeUrl,
+    });
+
+    return res.json({
+      success: true,
+      url: `/api/user/resume/access?token=${token}`,
+    });
+  } catch (error) {
+    console.error("Signed URL error:", error);
+    res.status(500).json({ success: false, message: "Failed to generate URL" });
+  }
+});
+
+// 🔐 Secure file access endpoint
+userRouter.get("/resume/access", async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    const payload = verifySignedFileToken(token);
+
+    // Optional: enforce ownership
+    // (you could also re-fetch user if needed)
+
+    return res.redirect(payload.fileUrl);
+  } catch (error) {
+    console.error("Access error:", error.message);
+    return res.status(403).json({ success: false, message: "Invalid or expired link" });
+  }
+});
+
+// Logout
 userRouter.post("/logout", protectedRouteRateLimit, protectUser, (req, res) => {
-  // Update last logout time or perform any server-side cleanup
-  res.json({ 
-    success: true, 
-    message: "Logged out successfully" 
-  });
+  res.json({ success: true, message: "Logged out successfully" });
 });
 
 export default userRouter;
