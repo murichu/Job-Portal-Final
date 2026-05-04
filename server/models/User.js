@@ -8,44 +8,36 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
-      index: true, // Add index for faster queries
+      index: true,
     },
     image: { type: String, required: true },
-    password: { 
-      type: String, 
+    password: {
+      type: String,
       required: true,
-      select: false // Don't include password in queries by default
+      select: false,
     },
-    emailVerified: {
-      type: Boolean,
-      default: false
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+      index: true,
     },
-    lastLogin: { 
-      type: Date, 
-      default: Date.now 
-    },
-    isActive: { 
-      type: Boolean, 
-      default: true 
-    },
-    resume: { 
-      type: String, 
-      default: "" 
-    },
+    emailVerified: { type: Boolean, default: false },
+    lastLogin: { type: Date, default: Date.now },
+    isActive: { type: Boolean, default: true },
+    resume: { type: String, default: "" },
   },
   { timestamps: true }
 );
 
-// Add compound index for email and isActive
 userSchema.index({ email: 1, isActive: 1 });
+userSchema.index({ role: 1, isActive: 1 });
 
-// Add method to check if user is active
-userSchema.methods.isActiveUser = function() {
+userSchema.methods.isActiveUser = function () {
   return this.isActive;
 };
 
-// Add method to update last login
-userSchema.methods.updateLastLogin = function() {
+userSchema.methods.updateLastLogin = function () {
   this.lastLogin = new Date();
   return this.save();
 };
