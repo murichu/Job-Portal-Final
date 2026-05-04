@@ -4,6 +4,7 @@ import TenantSubscription from "../models/TenantSubscription.js";
 import Invoice from "../models/Invoice.js";
 import { stkPush } from "../utils/mpesa.js";
 import { protectUser } from "../middleware/userAuth.js";
+import { requireMpesaCallbackAllowed } from "../middleware/mpesaSecurity.js";
 
 const router = express.Router();
 
@@ -25,7 +26,7 @@ router.post("/stk-push", protectUser, async (req, res) => {
   res.json({ success: true, response });
 });
 
-router.post("/callback", async (req, res) => {
+router.post("/callback", requireMpesaCallbackAllowed, async (req, res) => {
   const data = req.body.Body.stkCallback;
 
   const payment = await MpesaPayment.findOne({ checkoutRequestId: data.CheckoutRequestID });
@@ -40,7 +41,6 @@ router.post("/callback", async (req, res) => {
     const receipt = data.CallbackMetadata.Item.find(i => i.Name === "MpesaReceiptNumber");
     payment.mpesaReceiptNumber = receipt?.Value || "";
 
-    // 🔥 ACTIVATE SUBSCRIPTION
     const sub = await TenantSubscription.findOne({ tenantId: payment.tenantId });
     if (sub) {
       sub.status = "active";
@@ -49,12 +49,7 @@ router.post("/callback", async (req, res) => {
       sub.nextInvoiceAt = sub.currentPeriodEnd;
       await sub.save();
 
-      await Invoice.create({
-        tenantId: payment.tenantId,
-        amount: payment.amount,
-        status: "paid",
-        paidAt: new Date(),
-      });
+      await Invoice.create({ tenantId: payment.tenantId, amount: payment.amount, status: "paid", paidAt: new Date() });
     }
   }
 
