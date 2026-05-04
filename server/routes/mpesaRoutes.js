@@ -5,6 +5,7 @@ import Invoice from "../models/Invoice.js";
 import { stkPush } from "../utils/mpesa.js";
 import { protectUser } from "../middleware/userAuth.js";
 import { requireMpesaCallbackAllowed } from "../middleware/mpesaSecurity.js";
+import { evaluateMpesaFraud } from "../services/mpesaFraudService.js";
 
 const router = express.Router();
 
@@ -27,17 +28,25 @@ router.post("/stk-push", protectUser, async (req, res) => {
 });
 
 router.post("/callback", requireMpesaCallbackAllowed, async (req, res) => {
+  if (!req.body.Body?.stkCallback) return res.sendStatus(400);
+
   const data = req.body.Body.stkCallback;
 
   const payment = await MpesaPayment.findOne({ checkoutRequestId: data.CheckoutRequestID });
   if (!payment) return res.sendStatus(404);
 
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.ip;
+
+  payment.callbackIp = ip;
   payment.status = data.ResultCode === 0 ? "paid" : "failed";
   payment.resultCode = data.ResultCode;
   payment.resultDesc = data.ResultDesc;
   payment.rawCallback = data;
 
-  if (data.ResultCode === 0) {
+  // Fraud detection
+  await evaluateMpesaFraud(payment, data, ip);
+
+  if (payment.status === "paid" && !payment.suspicious) {
     const receipt = data.CallbackMetadata.Item.find(i => i.Name === "MpesaReceiptNumber");
     payment.mpesaReceiptNumber = receipt?.Value || "";
 
@@ -54,6 +63,12 @@ router.post("/callback", requireMpesaCallbackAllowed, async (req, res) => {
   }
 
   await payment.save();
+
+  console.log("M-Pesa callback processed:", {
+    checkoutId: data.CheckoutRequestID,
+    status: payment.status,
+    suspicious: payment.suspicious,
+  });
 
   res.json({ ResultCode: 0, ResultDesc: "Accepted" });
 });
