@@ -6,8 +6,8 @@ import DOMPurify from "dompurify";
 const JobCard = ({ job, hasApplied }) => {
   const navigate = useNavigate();
 
-  const companyImage = job.companyId?.image || job.company?.image || assets.company_icon;
-  const companyName = job.companyId?.name || job.company?.name || "Unknown Company";
+  const companyImage = job.organizationId?.image || job.company?.image || assets.company_icon;
+  const companyName = job.organizationId?.name || job.company?.name || "Unknown Company";
 
   const sanitizedDescription = DOMPurify.sanitize(job.description || "");
 

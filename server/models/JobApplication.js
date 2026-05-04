@@ -8,17 +8,17 @@ const JobApplicationSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    companyId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Company",
-      required: true,
-      index: true,
-    },
     jobId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Job",
       required: true,
       index: true,
+    },
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true
     },
 
     status: {
@@ -140,7 +140,7 @@ const JobApplicationSchema = new mongoose.Schema(
 JobApplicationSchema.index({ userId: 1, jobId: 1 }, { unique: true });
 
 // Optimize company queries (latest applications first)
-JobApplicationSchema.index({ companyId: 1, date: -1 });
+JobApplicationSchema.index({ organizationId: 1, date: -1 });
 
 // Safe model creation (prevents overwrite in dev/hot reload)
 const JobApplication =

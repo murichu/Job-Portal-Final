@@ -23,11 +23,12 @@ const jobSchema = new mongoose.Schema(
       ref: "Job",
       default: null,
     },
-    companyId: {
+    organizationId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Company",
+      ref: "Organization",
       required: true,
-    },
+      index: true
+    }
   },
   { timestamps: true }
 );

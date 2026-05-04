@@ -108,9 +108,9 @@ const ApplyJob = () => {
     return "Salary not specified";
   };
 
-  // Jobs from the same company (excluding current)
+  // Jobs from the same organization (excluding current)
   const relatedJobs = jobs.filter(
-    (j) => j._id !== id && j.companyId?._id === jobData?.companyId?._id
+    (j) => j._id !== id && j.organizationId?._id === jobData?.organizationId?._id
   ).slice(0, 4);
 
   // Error state
@@ -148,12 +148,12 @@ const ApplyJob = () => {
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
               <img
                 className="w-20 h-20 bg-white rounded-xl p-3 border border-gray-200 object-contain shadow-sm flex-shrink-0"
-                src={jobData.companyId.image}
-                alt={jobData.companyId.name}
+                src={jobData.organizationId.image}
+                alt={jobData.organizationId.name}
                 onError={(e) => { e.target.src = assets.company_icon; }}
               />
               <div className="text-center sm:text-left">
-                <p className="text-sm font-medium text-blue-600 mb-1">{jobData.companyId.name}</p>
+                <p className="text-sm font-medium text-blue-600 mb-1">{jobData.organizationId.name}</p>
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight mb-3">
                   {jobData.title}
                 </h1>
@@ -258,12 +258,12 @@ const ApplyJob = () => {
             <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-card sticky top-24">
               <h3 className="font-semibold text-gray-800 text-sm mb-4 flex items-center gap-2">
                 <img
-                  src={jobData.companyId.image}
+                  src={jobData.organizationId.image}
                   alt=""
                   className="w-5 h-5 rounded object-contain"
                   onError={(e) => { e.target.src = assets.company_icon; }}
                 />
-                More from {jobData.companyId.name}
+                More from {jobData.organizationId.name}
               </h3>
               {relatedJobs.length > 0 ? (
                 <div className="space-y-3">
@@ -278,7 +278,7 @@ const ApplyJob = () => {
               ) : (
                 <div className="text-center py-8 text-gray-400">
                   <div className="text-3xl mb-2">🏢</div>
-                  <p className="text-sm">No other open positions at {jobData.companyId.name} right now.</p>
+                  <p className="text-sm">No other open positions at {jobData.organizationId.name} right now.</p>
                 </div>
               )}
             </div>

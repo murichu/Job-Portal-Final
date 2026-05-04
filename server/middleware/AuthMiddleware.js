@@ -1,12 +1,12 @@
 import jwt from "jsonwebtoken";
-import Company from "../models/Company.js";
+import Organization from "../models/Organization.js";
 
-// Middleware to protect routes by verifying the token and attaching the company to the request
+// Middleware to protect routes by verifying the token and attaching the organization to the request
 export const protectCompany = async (req, res, next) => {
   // Support both Authorization header formats
   const authHeader = req.headers.authorization || req.headers.token;
   let token;
-
+  
   if (authHeader && authHeader.startsWith("Bearer ")) {
     token = authHeader.substring(7); // Remove 'Bearer ' prefix
   } else if (authHeader) {
@@ -40,23 +40,21 @@ export const protectCompany = async (req, res, next) => {
       });
     }
 
-    // Find company by decoded token ID and exclude the password field
-    const company = await Company.findById(decoded.id)
+    // Find organization by decoded token ID and exclude the password field
+    const organization = await Organization.findById(decoded.id)
       .select("-password")
       .lean();
 
-    if (!company) {
+    if (!organization) {
       return res
         .status(404)
-        .json({ success: false, message: "Company not found" });
+        .json({ success: false, message: "Organization not found" });
     }
 
-    // Attach company info to the request for use in next handlers
-    req.company = company;
-    //console.log(company);
-
-    req.companyId = company._id; // Also attach just the ID for convenience
-    //console.log(company._id);
+    // Attach organization info to the request for use in next handlers (as company for backward compatibility)
+    req.company = organization;
+    req.organization = organization;
+    req.organizationId = organization._id;
 
     next(); // Proceed to next middleware or route handler
   } catch (error) {

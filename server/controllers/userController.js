@@ -297,7 +297,7 @@ export const applyForJob = async (req, res) => {
 
     // Create application
     await JobApplication.create({
-      companyId: jobData.companyId,
+      organizationId: jobData.organizationId,
       userId,
       jobId,
       date: Date.now(),
@@ -336,7 +336,7 @@ export const getUserJobApplications = async (req, res) => {
 
     const [applications, total] = await Promise.all([
       JobApplication.find({ userId })
-        .populate("companyId", "name email image")
+        .populate("organizationId", "name email image")
         .populate("jobId", "title description location category level salary salaryMode salaryAmount salaryMin salaryMax salaryVisible isNegotiable")
         .sort({ createdAt: -1 })
         .skip(skip)

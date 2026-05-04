@@ -32,6 +32,22 @@ const userSchema = new mongoose.Schema(
       type: String, 
       default: "" 
     },
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      default: null
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin", "owner"],
+      default: "user"
+    },
+    permissions: [{
+      type: String,
+      enum: ["jobs.create", "jobs.edit", "jobs.delete", "jobs.view_all", 
+             "applications.view", "applications.manage", "reports.view",
+             "company.manage", "organization.manage", "users.manage"]
+    }]
   },
   { timestamps: true }
 );

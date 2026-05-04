@@ -6,7 +6,7 @@ import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 
 import connectDB from "../config/mongoDB.js";
-import Company from "../models/Company.js";
+import Organization from "../models/Organization.js";
 import Job from "../models/Job.js";
 import User from "../models/User.js";
 import JobApplication from "../models/JobApplication.js";
@@ -77,12 +77,12 @@ const main = async () => {
       await Promise.all([
         JobApplication.deleteMany({}),
         Job.deleteMany({}),
-        Company.deleteMany({}),
+        Organization.deleteMany({}),
         User.deleteMany({}),
       ]);
       console.log("🧹 Existing seed collections cleared.");
     } else {
-      const existingSeedCompany = await Company.findOne({
+      const existingSeedCompany = await Organization.findOne({
         email: "hr+1@slack.demo",
       }).lean();
       if (existingSeedCompany) {
@@ -94,7 +94,7 @@ const main = async () => {
 
     const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
 
-    const companies = await Company.insertMany(
+    const organizations = await Organization.insertMany(
       seededCompanies.map((company, idx) => ({
         name: company.name,
         email: `hr+${idx + 1}@${company.name.toLowerCase()}.demo`,
@@ -123,7 +123,7 @@ const main = async () => {
 
     const jobsPayload = [];
     for (let i = 0; i < 18; i += 1) {
-      const company = randomPick(companies);
+      const organization = randomPick(organizations);
       const category = randomPick(categories);
       const location = randomPick(locations);
       const level = randomPick(LEVELS);
@@ -137,7 +137,7 @@ const main = async () => {
         salary: 50000 + Math.floor(Math.random() * 90000),
         date: new Date(),
         visible: true,
-        companyId: company._id,
+        organizationId: organization._id,
       });
     }
 
@@ -147,7 +147,7 @@ const main = async () => {
       const user = randomPick(users);
       return {
         userId: user._id,
-        companyId: job.companyId,
+        organizationId: job.organizationId,
         jobId: job._id,
         status: randomPick(["Pending", "Accepted", "Rejected"]),
         date: new Date(),
@@ -159,7 +159,7 @@ const main = async () => {
     console.log("✅ Seed completed from assets.js data:");
     console.log(`- Categories parsed: ${categories.length}`);
     console.log(`- Locations parsed: ${locations.length}`);
-    console.log(`- Companies created: ${companies.length}`);
+    console.log(`- Organizations created: ${organizations.length}`);
     console.log(`- Users created: ${users.length}`);
     console.log(`- Jobs created: ${jobs.length}`);
     console.log(`- Applications created: ${applicationsPayload.length}`);

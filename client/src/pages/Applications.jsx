@@ -199,12 +199,12 @@ const Applications = () => {
                         <div className="flex items-center gap-3">
                           <img
                             className="w-9 h-9 rounded-lg object-cover border border-gray-100"
-                            src={application.companyId?.image}
-                            alt={application.companyId?.name}
+                            src={application.organizationId?.image}
+                            alt={application.organizationId?.name}
                             onError={(e) => { e.target.src = assets.company_icon; }}
                           />
                           <span className="font-medium text-gray-800 text-sm">
-                            {application.companyId?.name}
+                            {application.organizationId?.name}
                           </span>
                         </div>
                       </td>

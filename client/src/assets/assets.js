@@ -226,7 +226,7 @@ export const jobsData = [
     title: "Full Stack Developer",
     location: "California",
     level: "Senior Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -259,7 +259,7 @@ export const jobsData = [
     title: "Data Scientist",
     location: "New York",
     level: "Intermediate Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -292,7 +292,7 @@ export const jobsData = [
     title: "UI/UX Designer",
     location: "Bangalore",
     level: "Beginner Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -325,7 +325,7 @@ export const jobsData = [
     title: "DevOps Engineer",
     location: "Washington",
     level: "Senior Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -358,7 +358,7 @@ export const jobsData = [
     title: "Software Engineer",
     location: "Hyderabad",
     level: "Intermediate Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -391,7 +391,7 @@ export const jobsData = [
     title: "Network Engineer",
     location: "Bangalore",
     level: "Senior Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -424,7 +424,7 @@ export const jobsData = [
     title: "Project Manager",
     location: "Bangalore",
     level: "Senior Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -457,7 +457,7 @@ export const jobsData = [
     title: "Mobile App Developer",
     location: "Hyderabad",
     level: "Intermediate Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -490,7 +490,7 @@ export const jobsData = [
     title: "Cloud Architect",
     location: "Hyderabad",
     level: "Senior Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -523,7 +523,7 @@ export const jobsData = [
     title: "Technical Writer",
     location: "Mumbai",
     level: "Intermediate Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -556,7 +556,7 @@ export const jobsData = [
     title: "Cybersecurity Analyst",
     location: "Mumbai",
     level: "Intermediate Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -589,7 +589,7 @@ export const jobsData = [
     title: "Business Analyst",
     location: "Mumbai",
     level: "Intermediate Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -622,7 +622,7 @@ export const jobsData = [
     title: "Marketing Specialist",
     location: "Chennai",
     level: "Beginner Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -655,7 +655,7 @@ export const jobsData = [
     title: "Data Scientist",
     location: "California",
     level: "Senior Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -688,7 +688,7 @@ export const jobsData = [
     title: "UX/UI Designer",
     location: "Hyderabad",
     level: "Intermediate Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -721,7 +721,7 @@ export const jobsData = [
     title: "DevOps Engineer",
     location: "Bangalore",
     level: "Senior Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -754,7 +754,7 @@ export const jobsData = [
     title: "Sales Manager",
     location: "New York",
     level: "Senior Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -787,7 +787,7 @@ export const jobsData = [
     title: "Human Resources Specialist",
     location: "Washington",
     level: "Intermediate Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -820,7 +820,7 @@ export const jobsData = [
     title: "Content Marketing Manager",
     location: "Mumbai",
     level: "Senior Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -853,7 +853,7 @@ export const jobsData = [
     title: "Graphic Designer",
     location: "Chennai",
     level: "Intermediate Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -886,7 +886,7 @@ export const jobsData = [
     title: "Software Tester",
     location: "Chennai",
     level: "Intermediate Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -919,7 +919,7 @@ export const jobsData = [
     title: "Network Security Engineer",
     location: "Bangalore",
     level: "Senior Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",
@@ -952,7 +952,7 @@ export const jobsData = [
     title: "Cloud Engineer",
     location: "Hyderabad",
     level: "Intermediate Level",
-    companyId: {
+    organizationId: {
       _id: "670e4d25ca9fda8f1bf359b9",
       name: "Slack",
       email: "slack@demo.com",

@@ -12,6 +12,7 @@ import connectCloudinary from "./config/Cloudinary.js";
 import companyRouter from "./routes/companyRoutes.js";
 import jobRouter from "./routes/jobRoutes.js";
 import userRouter from "./routes/userRouter.js";
+import organizationRouter from "./routes/organizationRoutes.js";
 
 // Load env
 dotenv.config();
@@ -63,6 +64,7 @@ await connectCloudinary();
 app.use("/api/user", userRouter);
 app.use("/api/company", companyRouter);
 app.use("/api/jobs", jobRouter);
+app.use("/api/organization", organizationRouter);
 
 // ================= TEST ROUTES =================
 app.get("/", (req, res) => {
