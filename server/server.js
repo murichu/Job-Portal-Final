@@ -21,6 +21,7 @@ import billingRoutes from "./routes/billingRoutes.js";
 import onboardingRoutes from "./routes/onboardingRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
+import paystackRoutes from "./routes/paystackRoutes.js";
 
 dotenv.config();
 
@@ -54,6 +55,7 @@ app.use("/api/user", userRouter);
 app.use("/api/company", companyRouter);
 app.use("/api/jobs", jobRouter);
 app.use("/api/mpesa", mpesaRoutes);
+app.use("/api/paystack", paystackRoutes);
 app.use("/api/billing", billingRoutes);
 app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/admin", adminRoutes);
