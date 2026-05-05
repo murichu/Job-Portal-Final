@@ -36,6 +36,20 @@ const jobSchema = new mongoose.Schema(
 
     date: { type: Date, required: true },
     deadline: { type: Date, required: true },
+    approvalStatus: {
+      type: String,
+      enum: ["draft", "pending", "approved", "rejected"],
+      default: "draft",
+      index: true,
+    },
+    approvalNote: { type: String, default: "" },
+    approvedAt: { type: Date, default: null },
+    jobStatus: {
+      type: String,
+      enum: ["draft", "active", "expired"],
+      default: "draft",
+      index: true,
+    },
 
     visible: { type: Boolean, default: true },
 

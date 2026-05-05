@@ -2,7 +2,7 @@
 
 This project includes a seed script that generates demo data using values from:
 
-- `client/src/assets/assets.js` (`JobCategories`, `JobLocations`)
+- `client/src/assets/assets.js` (`JobCategories`, `JobLocations`, `jobsData`)
 
 ## Command
 
@@ -16,7 +16,7 @@ npm --prefix server run seed:assets -- --reset
 
 - Companies
 - Users
-- Jobs
+- Jobs (seeded first from `jobsData`, then expanded with additional randomized demo jobs)
 - Job Applications
 
 ## Notes
@@ -28,3 +28,10 @@ npm --prefix server run seed:assets -- --reset
 ```text
 SeedPass@123
 ```
+
+## Demo Logins (after seeding)
+
+- **Job Seeker:** `user1@demo.com` / `SeedPass@123`
+- **Recruiter (Slack):** `hr+1@slack.demo` / `SeedPass@123`
+- **Recruiter (Amazon):** `hr+2@amazon.demo` / `SeedPass@123`
+- **Recruiter (Microsoft):** `hr+3@microsoft.demo` / `SeedPass@123`
