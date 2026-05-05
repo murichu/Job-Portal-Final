@@ -1,12 +1,9 @@
 import express from "express";
-import SystemAlert from "../models/SystemAlert.js";
 import { protectUser } from "../middleware/userAuth.js";
+import { getAlerts } from "../controllers/monitorController.js";
 
 const router = express.Router();
 
-router.get("/alerts", protectUser, async (req, res) => {
-  const alerts = await SystemAlert.find().sort({ createdAt: -1 }).limit(50);
-  res.json({ success: true, alerts });
-});
+router.get("/alerts", protectUser, getAlerts);
 
 export default router;

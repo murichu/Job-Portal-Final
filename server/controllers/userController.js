@@ -7,6 +7,11 @@ import generateToken from "../utils/generateToken.js";
 import { v2 as cloudinary } from "cloudinary";
 import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
+import crypto from "crypto";
+import FileDownload from "../models/FileDownload.js";
+import { createSignedFileToken, verifySignedFileToken } from "../utils/signedFileAccess.js";
+
+const hashUrl = (url) => crypto.createHash("sha256").update(url).digest("hex");
 
 // Rate limiting for auth endpoints
 export const authRateLimit = rateLimit({
@@ -440,4 +445,67 @@ export const getUserProfileCompleteness = async (req, res) => {
     console.error("getUserProfileCompleteness error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
+};
+
+export const getResumeSignedUrl = (req, res) => {
+  try {
+    const resumeUrl = req.user?.resume;
+    if (!resumeUrl) return res.status(404).json({ success: false, message: "No resume found" });
+
+    const token = createSignedFileToken({ userId: req.userId, fileUrl: resumeUrl });
+    return res.json({ success: true, url: `/api/user/resume/access?token=${token}` });
+  } catch {
+    res.status(500).json({ success: false });
+  }
+};
+
+export const accessResume = async (req, res) => {
+  const ip = req.ip;
+  const userAgent = req.headers["user-agent"] || "";
+
+  try {
+    const payload = verifySignedFileToken(req.query.token);
+
+    await FileDownload.create({
+      ownerUserId: payload.userId,
+      fileType: "resume",
+      fileUrlHash: hashUrl(payload.fileUrl),
+      status: "success",
+      ipAddress: ip,
+      userAgent,
+    });
+
+    return res.redirect(payload.fileUrl);
+  } catch (error) {
+    await FileDownload.create({
+      ownerUserId: null,
+      fileType: "resume",
+      fileUrlHash: "invalid",
+      status: "invalid",
+      ipAddress: ip,
+      userAgent,
+      reason: error.message,
+    });
+
+    return res.status(403).json({ success: false, message: "Invalid or expired link" });
+  }
+};
+
+export const getResumeAnalytics = async (req, res) => {
+  const userId = req.userId;
+
+  const totalDownloads = await FileDownload.countDocuments({ ownerUserId: userId, status: "success" });
+
+  const recent = await FileDownload.find({ ownerUserId: userId }).sort({ createdAt: -1 }).limit(10);
+
+  const byStatus = await FileDownload.aggregate([
+    { $match: { ownerUserId: userId } },
+    { $group: { _id: "$status", count: { $sum: 1 } } },
+  ]);
+
+  res.json({ success: true, totalDownloads, recent, byStatus });
+};
+
+export const logoutUser = (req, res) => {
+  res.json({ success: true, message: "Logged out successfully" });
 };
