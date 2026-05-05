@@ -33,6 +33,27 @@ import UserLogin from "./components/UserLogin";
 // Lazy-loaded pages
 const UserProfilePage = lazy(() => import("./pages/UserProfile"));
 const CompanyProfilePage = lazy(() => import("./pages/CompanyProfile"));
+const BillingDashboard = lazy(() => import("./pages/BillingDashboard"));
+const IncidentDashboard = lazy(() => import("./pages/IncidentDashboard"));
+const FinancialAdminPanel = lazy(() => import("./pages/FinancialAdminPanel"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const TeamManagementDashboard = lazy(() => import("./pages/TeamManagementDashboard"));
+const AdminFinanceDashboard = lazy(() => import("./pages/AdminFinanceDashboard"));
+const PublicStatus = lazy(() => import("./pages/PublicStatus"));
+const Reconciliation = lazy(() => import("./pages/Reconciliation"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AnalyticsDashboard = lazy(() => import("./pages/AnalyticsDashboard"));
+const LogDashboard = lazy(() => import("./pages/LogDashboard"));
+const AdvancedAdminDashboard = lazy(() => import("./pages/AdvancedAdminDashboard"));
+const FraudDashboard = lazy(() => import("./pages/FraudDashboard"));
+const EmailAnalyticsDashboard = lazy(() => import("./pages/EmailAnalyticsDashboard"));
+const PaymentTimelinePage = lazy(() => import("./pages/PaymentTimeline"));
+const RefundPage = lazy(() => import("./pages/RefundPage"));
+const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
+const StripeStyleBilling = lazy(() => import("./pages/StripeStyleBilling"));
+const PaymentHistory = lazy(() => import("./pages/PaymentHistory"));
+const CompanyDashboard = lazy(() => import("./pages/CompanyDashboard"));
+const AuditLogsViewer = lazy(() => import("./pages/AuditLogsViewer"));
 
 /* ─────────────────────────────────────────────
    Route Guards
@@ -119,6 +140,27 @@ const App = () => {
               </ProtectedCompanyRoute>
             }
           />
+          <Route path="/status" element={<PublicStatus />} />
+          <Route path="/onboarding" element={<ProtectedCompanyRoute><Onboarding /></ProtectedCompanyRoute>} />
+          <Route path="/team" element={<ProtectedCompanyRoute><TeamManagementDashboard /></ProtectedCompanyRoute>} />
+          <Route path="/billing" element={<ProtectedCompanyRoute><BillingDashboard /></ProtectedCompanyRoute>} />
+          <Route path="/billing/subscription" element={<ProtectedCompanyRoute><SubscriptionPage /></ProtectedCompanyRoute>} />
+          <Route path="/billing/history" element={<ProtectedCompanyRoute><PaymentHistory /></ProtectedCompanyRoute>} />
+          <Route path="/billing/timeline" element={<ProtectedCompanyRoute><PaymentTimelinePage /></ProtectedCompanyRoute>} />
+          <Route path="/billing/stripe" element={<ProtectedCompanyRoute><StripeStyleBilling /></ProtectedCompanyRoute>} />
+          <Route path="/billing/refund" element={<ProtectedCompanyRoute><RefundPage /></ProtectedCompanyRoute>} />
+          <Route path="/incidents" element={<ProtectedCompanyRoute><IncidentDashboard /></ProtectedCompanyRoute>} />
+          <Route path="/logs" element={<ProtectedCompanyRoute><LogDashboard /></ProtectedCompanyRoute>} />
+          <Route path="/analytics" element={<ProtectedCompanyRoute><AnalyticsDashboard /></ProtectedCompanyRoute>} />
+          <Route path="/company-admin" element={<ProtectedCompanyRoute><CompanyDashboard /></ProtectedCompanyRoute>} />
+          <Route path="/admin" element={<ProtectedCompanyRoute><AdminDashboard /></ProtectedCompanyRoute>} />
+          <Route path="/admin/finance" element={<ProtectedCompanyRoute><AdminFinanceDashboard /></ProtectedCompanyRoute>} />
+          <Route path="/admin/finance/panel" element={<ProtectedCompanyRoute><FinancialAdminPanel /></ProtectedCompanyRoute>} />
+          <Route path="/admin/advanced" element={<ProtectedCompanyRoute><AdvancedAdminDashboard /></ProtectedCompanyRoute>} />
+          <Route path="/admin/fraud" element={<ProtectedCompanyRoute><FraudDashboard /></ProtectedCompanyRoute>} />
+          <Route path="/admin/email-analytics" element={<ProtectedCompanyRoute><EmailAnalyticsDashboard /></ProtectedCompanyRoute>} />
+          <Route path="/admin/reconciliation" element={<ProtectedCompanyRoute><Reconciliation /></ProtectedCompanyRoute>} />
+          <Route path="/admin/audit-logs" element={<ProtectedCompanyRoute><AuditLogsViewer /></ProtectedCompanyRoute>} />
 
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
