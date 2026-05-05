@@ -1,8 +1,6 @@
-import "./config/instrument.js";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import * as Sentry from "@sentry/node";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import http from "http";
@@ -92,8 +90,6 @@ app.use("/api/campaigns", campaignRoutes);
 app.use("/api/billing-analytics", billingAnalyticsRoutes);
 
 app.get("/", (req, res) => res.json({ success: true }));
-
-Sentry.setupExpressErrorHandler(app);
 
 const PORT = process.env.PORT || 5000;
 

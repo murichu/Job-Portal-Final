@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "server.js",
   "type": "module",
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "npm@11.12.1",
   "engines": {
     "node": ">=20.11.0",
-    "pnpm": ">=9.0.0"
+    "npm": ">=10.0.0"
   },
   "scripts": {
     "dev": "nodemon server.js",
@@ -15,8 +15,7 @@
     "worker:email": "node workers/emailWorker.js"
   },
   "dependencies": {
-    "@sentry/node": "^8.48.0",
-    "@sentry/profiling-node": "^8.48.0",
+    "axios": "^1.16.0",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.34.2",
     "cloudinary": "^2.5.1",
@@ -26,19 +25,20 @@
     "express": "^4.21.2",
     "express-rate-limit": "^8.0.1",
     "helmet": "^7.0.0",
-    "ioredis": "^5.4.2",
     "inngest": "^3.40.1",
+    "ioredis": "^5.4.2",
     "joi": "^17.12.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.3",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.9.16",
+    "nodemailer": "^8.0.7",
     "pdfkit": "^0.15.2",
     "pino": "^9.0.0",
     "socket.io": "^4.8.1",
-    "uuid": "^13.0.0",
-    "validator": "^13.15.15"
+    "uuid": "^14.0.0",
+    "validator": "^13.15.15",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
