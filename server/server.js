@@ -33,6 +33,10 @@ import incidentRoutes from "./routes/incidentRoutes.js";
 import logRoutes from "./routes/logRoutes.js";
 import emailAnalyticsRoutes from "./routes/emailAnalyticsRoutes.js";
 import emailPreferenceRoutes from "./routes/emailPreferenceRoutes.js";
+import insightRoutes from "./routes/insightRoutes.js";
+import tenantAnalyticsRoutes from "./routes/tenantAnalyticsRoutes.js";
+import campaignRoutes from "./routes/campaignRoutes.js";
+import billingAnalyticsRoutes from "./routes/billingAnalytics.js";
 
 dotenv.config();
 
@@ -82,6 +86,10 @@ app.use("/api/incidents", incidentRoutes);
 app.use("/api/logs", logRoutes);
 app.use("/api/email-analytics", emailAnalyticsRoutes);
 app.use("/api/email", emailPreferenceRoutes);
+app.use("/api/insights", insightRoutes);
+app.use("/api/tenant-analytics", tenantAnalyticsRoutes);
+app.use("/api/campaigns", campaignRoutes);
+app.use("/api/billing-analytics", billingAnalyticsRoutes);
 
 app.get("/", (req, res) => res.json({ success: true }));
 
