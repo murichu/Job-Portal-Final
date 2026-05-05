@@ -65,7 +65,8 @@ export const jobPostingSchema = Joi.object({
       otherwise: Joi.number().optional().allow(null),
     }),
   }),
-  deadline: Joi.date().iso().greater('now').required()
+  deadline: Joi.date().iso().greater('now').required(),
+  isDraft: Joi.boolean().default(false)
 });
 
 // Job application validation schema
@@ -86,7 +87,9 @@ export const companyStagesSchema = Joi.object({
 export const interviewScheduleSchema = Joi.object({
   applicationId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
   scheduledAt: Joi.date().iso().greater('now').required(),
-  notes: Joi.string().allow('').max(300).optional()
+  notes: Joi.string().allow('').max(300).optional(),
+  mode: Joi.string().valid("virtual", "physical").default("virtual"),
+  location: Joi.string().allow('').max(150).optional()
 });
 
 export const feedbackSchema = Joi.object({

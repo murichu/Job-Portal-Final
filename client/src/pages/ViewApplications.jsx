@@ -51,11 +51,19 @@ const ViewApplications = () => {
   const scheduleInterview = async (applicationId) => {
     const scheduledAt = window.prompt("Enter interview datetime (YYYY-MM-DDTHH:mm):");
     if (!scheduledAt) return;
+    const modeInput = window.prompt("Interview mode? Type 'virtual' for Google Meet or 'physical' for onsite:", "virtual");
+    const mode = modeInput === "physical" ? "physical" : "virtual";
+    let location = "";
+    if (mode === "physical") {
+      location = window.prompt("Enter interview location (leave empty to use company location):", "") || "";
+    }
     try {
       const { data } = await api.post(`${backendUrl}/api/company/schedule-interview`, {
         applicationId,
         scheduledAt: new Date(scheduledAt).toISOString(),
         notes: "Scheduled from dashboard",
+        mode,
+        location,
       });
       if (data.success) {
         toast.success("Interview scheduled");

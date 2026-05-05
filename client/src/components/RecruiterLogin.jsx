@@ -115,6 +115,13 @@ const RecruiterLogin = () => {
     setCompanyPhone(""); setRecruiterPosition(""); setRecruiterName(""); setCompanyLocation("");
   };
 
+  const fillDemoRecruiter = (emailValue = "hr+1@slack.demo") => {
+    setState("Login");
+    setIsTextDataSubmitted(false);
+    setPassword("SeedPass@123");
+    setEmail(emailValue);
+  };
+
   const stepLabels = state === "Sign Up"
     ? ["Company Info", "Upload Logo"]
     : ["Sign In"];
@@ -189,6 +196,24 @@ const RecruiterLogin = () => {
           )}
 
           <form onSubmit={onSubmitHandler} className="space-y-3">
+            {state === "Login" && (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => fillDemoRecruiter("hr+1@slack.demo")}
+                  className="w-full text-xs font-medium rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 py-2 hover:bg-indigo-100 transition-colors"
+                >
+                  Use Demo Company (Slack)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fillDemoRecruiter("hr+2@amazon.demo")}
+                  className="w-full text-xs font-medium rounded-lg border border-gray-200 bg-gray-50 text-gray-700 py-2 hover:bg-gray-100 transition-colors"
+                >
+                  Use Demo Company (Amazon)
+                </button>
+              </div>
+            )}
             {/* Logo Upload Step */}
             {state === "Sign Up" && isTextDataSubmitted ? (
               <div className="flex flex-col items-center gap-4 py-4">

@@ -28,3 +28,10 @@ npm --prefix server run seed:assets -- --reset
 ```text
 SeedPass@123
 ```
+
+## Demo Logins (after seeding)
+
+- **Job Seeker:** `user1@demo.com` / `SeedPass@123`
+- **Recruiter (Slack):** `hr+1@slack.demo` / `SeedPass@123`
+- **Recruiter (Amazon):** `hr+2@amazon.demo` / `SeedPass@123`
+- **Recruiter (Microsoft):** `hr+3@microsoft.demo` / `SeedPass@123`

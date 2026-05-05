@@ -65,7 +65,20 @@ const JobApplicationSchema = new mongoose.Schema(
         type: Date,
         default: null,
       },
+      mode: {
+        type: String,
+        enum: ["virtual", "physical"],
+        default: "virtual",
+      },
       meetLink: {
+        type: String,
+        default: "",
+      },
+      location: {
+        type: String,
+        default: "",
+      },
+      calendarLink: {
         type: String,
         default: "",
       },
@@ -148,4 +161,3 @@ const JobApplication =
   mongoose.model("JobApplication", JobApplicationSchema);
 
 export default JobApplication;
-
