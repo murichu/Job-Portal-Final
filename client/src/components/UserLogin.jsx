@@ -122,6 +122,18 @@ const UserLogin = () => {
     setShowPassword(false);
   }, []);
 
+  const fillDemoUser = useCallback(() => {
+    setFormType("Login");
+    setIsTextDataSubmitted(false);
+    setErrors({});
+    setShowPassword(false);
+    setFormData({
+      name: "",
+      email: "user1@demo.com",
+      password: "SeedPass@123",
+    });
+  }, []);
+
   return (
     <div
       className="fixed inset-0 z-50 backdrop-blur-sm bg-black/50 flex justify-center items-center p-4"
@@ -160,6 +172,15 @@ const UserLogin = () => {
           </div>
 
           <form onSubmit={onSubmitHandler} className="space-y-3">
+            {formType === "Login" && (
+              <button
+                type="button"
+                onClick={fillDemoUser}
+                className="w-full text-xs font-medium rounded-lg border border-blue-200 bg-blue-50 text-blue-700 py-2 hover:bg-blue-100 transition-colors"
+              >
+                Use Demo User Login
+              </button>
+            )}
             {/* Profile Photo Step */}
             {formType === "Sign Up" && isTextDataSubmitted ? (
               <div className="flex flex-col items-center gap-4 py-3">

@@ -6,6 +6,8 @@ import validator from "validator";
 import Job from "../models/Job.js";
 import JobApplication from "../models/JobApplication.js";
 import mongoose from "mongoose";
+import { sendEmail } from "../services/emailService.js";
+import { applicationStatusTemplate, interviewInviteTemplate } from "../templates/emailTemplates.js";
 
 const deriveJobStatus = (job) => {
   if (job?.isDeleted) return "expired";
@@ -255,6 +257,7 @@ export const postJob = async (req, res) => {
     salaryMax,
     salaryVisible = true,
     isNegotiable = false,
+    isDraft = false,
   } = req.body;
 
   if (!title || !description || !location || !level || !category || !deadline) {
@@ -343,11 +346,17 @@ export const postJob = async (req, res) => {
       companyId,
       date: new Date(),
       deadline: parsedDeadline,
+      approvalStatus: isDraft ? "draft" : "pending",
+      jobStatus: "draft",
+      visible: false,
     });
 
     return res.status(201).json({
       success: true,
       job: newJob,
+      message: isDraft
+        ? "Job saved as draft. Submit it for approval when ready."
+        : "Job submitted for approval successfully.",
     });
   } catch (error) {
     console.error("postJob error:", error);
@@ -631,6 +640,22 @@ export const ChangeJobApplicationStatus = async (req, res) => {
     });
     await application.save();
 
+    try {
+      const mail = applicationStatusTemplate({
+        applicantName: application.userId?.name,
+        jobTitle: application.jobId?.title || "your application",
+        status,
+        companyName: req.company?.name || "our company",
+      });
+      await sendEmail({
+        to: application.userId?.email,
+        subject: mail.subject,
+        html: mail.html,
+      });
+    } catch (mailError) {
+      console.warn("Application status email failed:", mailError.message);
+    }
+
     res.json({
       success: true,
       message: `Application ${status.toLowerCase()} successfully.`,
@@ -669,11 +694,17 @@ export const updateCompanyStages = async (req, res) => {
 
 export const scheduleInterview = async (req, res) => {
   try {
-    const { applicationId, scheduledAt, notes = "" } = req.body;
+    const {
+      applicationId,
+      scheduledAt,
+      notes = "",
+      mode = "virtual",
+      location = "",
+    } = req.body;
     const application = await JobApplication.findOne({
       _id: applicationId,
       companyId: req.company._id,
-    });
+    }).populate("userId", "name email").populate("jobId", "title");
     if (!application) {
       return res
         .status(404)
@@ -681,10 +712,17 @@ export const scheduleInterview = async (req, res) => {
     }
 
     const meetToken = Math.random().toString(36).slice(2, 10);
-    const meetLink = `https://meet.google.com/${meetToken}`;
+    const meetLink = mode === "virtual" ? `https://meet.google.com/${meetToken}` : "";
+    const venue = mode === "physical"
+      ? (location || req.company?.companyLocation || "Company Office")
+      : "";
+    const calendarLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Interview - ${application.jobId?.title || "Job Role"}`)}&dates=${new Date(scheduledAt).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")}/${new Date(new Date(scheduledAt).getTime() + 45 * 60000).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")}&details=${encodeURIComponent(notes || "Interview invitation")}&location=${encodeURIComponent(mode === "virtual" ? meetLink : venue)}`;
     application.interview = {
       scheduledAt: new Date(scheduledAt),
+      mode,
       meetLink,
+      location: venue,
+      calendarLink,
       reminderSent: false,
       notes,
     };
@@ -698,6 +736,27 @@ export const scheduleInterview = async (req, res) => {
       changedAt: new Date(),
     });
     await application.save();
+
+    try {
+      const mail = interviewInviteTemplate({
+        applicantName: application.userId?.name,
+        jobTitle: application.jobId?.title || "Job Role",
+        companyName: req.company?.name || "Company",
+        scheduledAt,
+        mode,
+        meetLink,
+        location: venue,
+        calendarLink,
+        notes,
+      });
+      await sendEmail({
+        to: application.userId?.email,
+        subject: mail.subject,
+        html: mail.html,
+      });
+    } catch (mailError) {
+      console.warn("Interview invite email failed:", mailError.message);
+    }
 
     return res.json({
       success: true,
@@ -862,6 +921,61 @@ export const updateCompanyRichProfile = async (req, res) => {
   }
 };
 
+export const updateCompanyProfile = async (req, res) => {
+  try {
+    const {
+      recruiterName = "",
+      recruiterPosition = "",
+      companyPhone = "",
+      companyLocation = "",
+      website = "",
+      about = "",
+      culture = "",
+      benefits = "",
+      teamHighlights = "",
+    } = req.body;
+
+    let imageUrl;
+    if (req.file?.path) {
+      const uploaded = await cloudinary.uploader.upload(req.file.path, {
+        folder: "company_profiles",
+        transformation: [{ width: 300, height: 300, crop: "fill", quality: "auto" }],
+      });
+      imageUrl = uploaded.secure_url;
+    }
+
+    const normalizeList = (value) => {
+      if (Array.isArray(value)) return value.filter(Boolean);
+      return String(value || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    };
+
+    const payload = {
+      recruiterName,
+      recruiterPosition,
+      companyPhone,
+      companyLocation,
+      website,
+      about,
+      culture,
+      benefits: normalizeList(benefits),
+      teamHighlights: normalizeList(teamHighlights),
+    };
+    if (imageUrl) payload.image = imageUrl;
+
+    const company = await Company.findByIdAndUpdate(req.company._id, payload, {
+      new: true,
+    }).lean();
+
+    return res.json({ success: true, company });
+  } catch (error) {
+    console.error("updateCompanyProfile error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
 export const getCompanyProfileCompleteness = async (req, res) => {
   const company = req.company;
   const checks = [
@@ -1004,6 +1118,30 @@ export const moderateJobApproval = async (req, res) => {
     });
   } catch (error) {
     console.error("moderateJobApproval error:", error);
+    return res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const submitJobForApproval = async (req, res) => {
+  try {
+    const { id } = req.body;
+    const companyId = req.company._id;
+    const job = await Job.findOne({ _id: id, companyId, isDeleted: { $ne: true } });
+
+    if (!job) return res.status(404).json({ success: false, message: "Job not found." });
+    if (job.approvalStatus === "approved") {
+      return res.status(400).json({ success: false, message: "Job is already approved." });
+    }
+
+    job.approvalStatus = "pending";
+    job.approvalNote = "";
+    job.jobStatus = "draft";
+    job.visible = false;
+    await job.save();
+
+    return res.json({ success: true, message: "Job submitted for approval.", job });
+  } catch (error) {
+    console.error("submitJobForApproval error:", error);
     return res.status(500).json({ success: false, message: "Server error." });
   }
 };

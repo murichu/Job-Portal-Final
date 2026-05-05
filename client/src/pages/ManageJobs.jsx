@@ -117,6 +117,8 @@ const ManageJobs = () => {
   }, [companyToken, fetchCompanyJobs]);
 
   const activeCount = jobs.filter((j) => j.jobStatus === "active").length;
+  const pendingCount = jobs.filter((j) => j.approvalStatus === "pending").length;
+  const draftCount = jobs.filter((j) => j.approvalStatus === "draft").length;
   const totalApplicants = jobs.reduce((sum, j) => sum + (j.applicants || 0), 0);
 
   return (
@@ -125,7 +127,7 @@ const ManageJobs = () => {
         <div>
           <h1 className="text-xl font-bold text-gray-900">Manage Jobs</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {jobs.length} total &bull; {activeCount} active
+            {jobs.length} total &bull; {activeCount} active &bull; {pendingCount} pending &bull; {draftCount} drafts
           </p>
         </div>
         <button
@@ -187,6 +189,9 @@ const ManageJobs = () => {
                           {job.approvalStatus}
                         </span>
                       )}
+                      {job.approvalStatus === "pending" && (
+                        <p className="mt-1 text-[11px] text-amber-600">Awaiting review</p>
+                      )}
                     </td>
                     <td className="px-4 py-4 text-center font-bold text-gray-700">{job.applicants || 0}</td>
                     <td className="px-4 py-4 text-center">
@@ -210,6 +215,30 @@ const ManageJobs = () => {
                         >
                           Repost
                         </button>
+                        {(job.approvalStatus === "draft" || job.approvalStatus === "rejected") && (
+                          <button
+                            disabled={updatingId === job._id}
+                            onClick={async () => {
+                              setUpdatingId(job._id);
+                              try {
+                                const { data } = await api.post(`${backendUrl}/api/company/submit-for-approval`, { id: job._id });
+                                if (data.success) {
+                                  toast.success(data.message);
+                                  fetchCompanyJobs();
+                                } else {
+                                  toast.error(data.message || "Failed to submit for approval");
+                                }
+                              } catch (error) {
+                                toast.error(error.response?.data?.message || "Failed to submit for approval");
+                              } finally {
+                                setUpdatingId(null);
+                              }
+                            }}
+                            className="text-xs px-2.5 py-1 rounded-lg border border-amber-200 text-amber-700 disabled:opacity-40"
+                          >
+                            Submit
+                          </button>
+                        )}
                         <button
                           disabled={updatingId === job._id}
                           onClick={() => softDeleteJob(job._id)}

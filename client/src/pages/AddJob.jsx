@@ -143,6 +143,7 @@ const AddJob = () => {
         isNegotiable,
         salary: getLegacySalary(),
         deadline: new Date(deadline).toISOString(),
+        isDraft,
       };
 
       if (!isNegotiable && salaryMode === "fixed") {
@@ -161,7 +162,7 @@ const AddJob = () => {
       });
 
       if (data.success) {
-        toast.success(data.message || "Job saved successfully!");
+        toast.success(data.message || (isDraft ? "Draft saved successfully!" : "Job submitted for approval."));
         resetForm();
       } else {
         toast.error(data.message);
@@ -192,6 +193,13 @@ const AddJob = () => {
         <h1 className="text-xl font-bold text-gray-900">Post a New Job</h1>
         <p className="text-sm text-gray-500 mt-0.5">
           Fill in the details below to attract the right candidates.
+        </p>
+      </div>
+      <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-4">
+        <p className="text-sm font-medium text-blue-800">Approval workflow</p>
+        <p className="mt-1 text-xs text-blue-700">
+          New jobs are hidden until approved. Use <span className="font-semibold">Save Draft</span> to continue later,
+          or <span className="font-semibold">Submit for Approval</span> to send to moderation.
         </p>
       </div>
 

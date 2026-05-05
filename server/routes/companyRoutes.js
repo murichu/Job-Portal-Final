@@ -14,6 +14,7 @@ import {
   getCompanyNotifications,
   updateCompanyRichProfile,
   getCompanyProfileCompleteness,
+  updateCompanyProfile,
   loginCompany,
   postJob,
   repostJob,
@@ -22,6 +23,7 @@ import {
   downloadCompanyReportExcel,
   downloadCompanyReportPDF,
   moderateJobApproval,
+  submitJobForApproval,
   softDeleteJob,
 } from "../controllers/companyController.js";
 import upload, { handleUploadError } from "../config/multer.js";
@@ -88,6 +90,13 @@ companyRouter.get("/analytics/interviews", protectCompany, getInterviewAnalytics
 companyRouter.post("/reminders/interviews", protectCompany, sendInterviewReminders);
 companyRouter.get("/notifications", protectCompany, getCompanyNotifications);
 companyRouter.put("/rich-profile", protectCompany, updateCompanyRichProfile);
+companyRouter.post(
+  "/update-profile",
+  protectCompany,
+  upload.single("image"),
+  handleUploadError,
+  updateCompanyProfile
+);
 companyRouter.get("/profile-completeness", protectCompany, getCompanyProfileCompleteness);
 
 // Change application status (e.g., approve/reject)
@@ -104,6 +113,7 @@ companyRouter.post("/change-visibility", protectCompany, ChangeJobVisibility);
 // Repost expired job if no shortlisted candidate
 companyRouter.post("/repost-job", protectCompany, repostJob);
 companyRouter.post("/moderate-job", protectCompany, validateRequest(jobModerationSchema), moderateJobApproval);
+companyRouter.post("/submit-for-approval", protectCompany, validateRequest(jobDeleteSchema), submitJobForApproval);
 companyRouter.post("/delete-job", protectCompany, validateRequest(jobDeleteSchema), softDeleteJob);
 
 
