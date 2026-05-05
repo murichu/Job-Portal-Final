@@ -28,6 +28,27 @@ const extractArrayValues = (content, exportName) => {
   return [...blockMatch[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 };
 
+const extractJobsFromAssets = (content) => {
+  const blockRegex = /export const jobsData = \[(.*?)\];/s;
+  const match = content.match(blockRegex);
+  if (!match) return [];
+
+  const raw = match[1];
+  const objectRegex = /\{[\s\S]*?title:\s*"([^"]+)"[\s\S]*?location:\s*"([^"]+)"[\s\S]*?salary:\s*(\d+)[\s\S]*?category:\s*"([^"]+)"[\s\S]*?\}/g;
+  const jobs = [];
+  let objectMatch = objectRegex.exec(raw);
+  while (objectMatch) {
+    jobs.push({
+      title: objectMatch[1],
+      location: objectMatch[2],
+      salary: Number(objectMatch[3]),
+      category: objectMatch[4],
+    });
+    objectMatch = objectRegex.exec(raw);
+  }
+  return jobs;
+};
+
 const seededCompanies = [
   { name: "Slack", location: "California" },
   { name: "Amazon", location: "New York" },
@@ -68,6 +89,7 @@ const main = async () => {
     const assetsContent = await fs.readFile(assetsFilePath, "utf8");
     const categories = extractArrayValues(assetsContent, "JobCategories");
     const locations = extractArrayValues(assetsContent, "JobLocations");
+    const jobSeeds = extractJobsFromAssets(assetsContent);
 
     if (!categories.length || !locations.length) {
       throw new Error("Could not parse JobCategories/JobLocations from client/src/assets/assets.js");
@@ -122,7 +144,29 @@ const main = async () => {
     );
 
     const jobsPayload = [];
-    for (let i = 0; i < 18; i += 1) {
+    const normalizedJobs = jobSeeds
+      .filter((job) => categories.includes(job.category))
+      .map((job, idx) => ({
+        ...job,
+        level: LEVELS[idx % LEVELS.length],
+      }));
+
+    normalizedJobs.forEach((job, idx) => {
+      const company = companies[idx % companies.length];
+      jobsPayload.push({
+        title: job.title,
+        description: createDescription(job.title, job.category, job.location),
+        location: job.location,
+        category: job.category,
+        level: job.level,
+        salary: job.salary,
+        date: new Date(Date.now() - idx * 86400000),
+        visible: true,
+        companyId: company._id,
+      });
+    });
+
+    for (let i = 0; i < 8; i += 1) {
       const company = randomPick(companies);
       const category = randomPick(categories);
       const location = randomPick(locations);
@@ -159,6 +203,7 @@ const main = async () => {
     console.log("✅ Seed completed from assets.js data:");
     console.log(`- Categories parsed: ${categories.length}`);
     console.log(`- Locations parsed: ${locations.length}`);
+    console.log(`- Base jobs parsed from assets.js jobsData: ${normalizedJobs.length}`);
     console.log(`- Companies created: ${companies.length}`);
     console.log(`- Users created: ${users.length}`);
     console.log(`- Jobs created: ${jobs.length}`);
